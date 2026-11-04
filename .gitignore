@@ -25,3 +25,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local/generated - not part of app code
+.claude/
+.mcp.json
+storage/api-docs/
