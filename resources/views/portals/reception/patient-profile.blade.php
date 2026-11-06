@@ -18,6 +18,9 @@
 <a href="{{ route('reception.beds') }}" class="flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
     <span>Bed Availability</span>
 </a>
+<a href="{{ route('reception.settings') }}" class="flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+    <span>Settings</span>
+</a>
 @endsection
 
 @section('content')
@@ -33,7 +36,10 @@
                 {{ $patient->age ? $patient->age . ' yrs' : ($patient->date_of_birth?->format('d M Y') ?? '—') }}, {{ $patient->gender }} · {{ $patient->phone ?? 'No phone' }}
             </p>
         </div>
-        <div>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('reception.patients.edit', $patient) }}" class="px-4 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition">
+                Edit patient
+            </a>
             <a href="{{ route('reception.visits.create', ['patient_id' => $patient->id]) }}" class="px-5 py-2.5 bg-brand-700 hover:bg-brand-800 text-white rounded-lg text-xs font-semibold shadow-sm transition">
                 Start new visit
             </a>

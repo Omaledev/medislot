@@ -21,6 +21,7 @@ class BedCategory extends Model
             'out_of_service_beds' => 'integer',
             'available_beds' => 'integer',
             'last_updated_at' => 'datetime',
+            'last_synced_at' => 'datetime',
         ];
     }
 

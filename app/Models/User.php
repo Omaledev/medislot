@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -30,6 +31,7 @@ class User extends Authenticatable
         'department_username',
         'phone',
         'title',
+        'avatar',
         'status',
         'email_verified_at',
     ];
@@ -65,6 +67,11 @@ class User extends Authenticatable
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
     }
 
     public function isHospitalAdmin(): bool
@@ -110,5 +117,40 @@ class User extends Authenticatable
     public function prescriptions(): HasMany
     {
         return $this->hasMany(Prescription::class, 'prescriber_id');
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        $words = preg_split('/\s+/', trim($this->name));
+        $initials = '';
+        foreach (array_slice($words, 0, 2) as $w) {
+            $initials .= strtoupper(mb_substr($w, 0, 1));
+        }
+
+        return $initials ?: 'U';
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->avatar && Storage::disk('public')->exists($this->avatar)) {
+            return asset('storage/'.$this->avatar);
+        }
+
+        $name = urlencode($this->name);
+
+        return "https://ui-avatars.com/api/?name={$name}&background=11635d&color=ffffff&bold=true&size=128";
+    }
+
+    public function getProfileUrl(): string
+    {
+        return match ($this->role) {
+            'superadmin' => route('superadmin.dashboard'),
+            'hospital_admin' => route('admin.profile'),
+            'reception' => route('reception.settings'),
+            'consultant' => route('consultant.profile'),
+            'lab_scientist' => route('lab.profile'),
+            'pharmacist' => route('pharmacy.profile'),
+            default => route('home'),
+        };
     }
 }

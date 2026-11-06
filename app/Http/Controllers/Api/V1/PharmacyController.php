@@ -213,4 +213,80 @@ class PharmacyController extends Controller
             'data' => new MedicationResource($med),
         ], 201);
     }
+
+    public function showMedication(Medication $medication): JsonResponse
+    {
+        return response()->json([
+            'data' => new MedicationResource($medication),
+        ]);
+    }
+
+    public function receiveStock(Request $request, Medication $medication): JsonResponse
+    {
+        $validated = $request->validate([
+            'quantity_received' => ['required', 'integer', 'min:1'],
+            'batch_number' => ['nullable', 'string'],
+            'expiry_date' => ['nullable', 'date'],
+        ]);
+
+        $medication->increment('quantity', $validated['quantity_received']);
+
+        $updates = [];
+        if (! empty($validated['batch_number'])) {
+            $updates['batch_number'] = $validated['batch_number'];
+        }
+        if (! empty($validated['expiry_date'])) {
+            $updates['expiry_date'] = $validated['expiry_date'];
+        }
+        if ($updates) {
+            $medication->update($updates);
+        }
+        $medication->updateStatus();
+
+        return response()->json([
+            'message' => 'Stock received successfully',
+            'data' => new MedicationResource($medication),
+        ]);
+    }
+
+    public function adjustStock(Request $request, Medication $medication): JsonResponse
+    {
+        $validated = $request->validate([
+            'adjustment_amount' => ['required', 'integer'],
+            'reason' => ['required', 'string'],
+        ]);
+
+        $newQty = max(0, $medication->quantity + $validated['adjustment_amount']);
+        $medication->update(['quantity' => $newQty]);
+        $medication->updateStatus();
+
+        return response()->json([
+            'message' => 'Stock count adjusted successfully',
+            'data' => new MedicationResource($medication),
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string'],
+            'email' => ['sometimes', 'required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+            'title' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'title' => $user->title,
+            ],
+        ]);
+    }
 }

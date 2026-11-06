@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\RegistrationOtpMail;
 use App\Models\Admission;
 use App\Models\BedCategory;
 use App\Models\Department;
@@ -13,6 +14,8 @@ use App\Models\User;
 use App\Models\Visit;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class ApiV1Test extends TestCase
@@ -333,6 +336,63 @@ class ApiV1Test extends TestCase
 
         $logoutResponse->assertStatus(200)
             ->assertJsonPath('message', 'Logged out successfully');
+    }
+
+    public function test_api_registration_otp_workflow(): void
+    {
+        Mail::fake();
+
+        // 1. Send OTP
+        $sendResponse = $this->postJson('/api/v1/auth/send-registration-otp', [
+            'admin_email' => 'dr.kalu@evercare.org',
+            'hospital_name' => 'Evercare Medical City',
+            'admin_name' => 'Dr. Kalu Ndukwe',
+        ]);
+
+        $sendResponse->assertStatus(200)
+            ->assertJsonPath('email', 'dr.kalu@evercare.org')
+            ->assertJsonPath('expires_in_minutes', 15);
+
+        Mail::assertSent(RegistrationOtpMail::class);
+
+        // 2. Verify with invalid OTP -> 422
+        $invalidVerify = $this->postJson('/api/v1/auth/verify-registration-otp', [
+            'admin_email' => 'dr.kalu@evercare.org',
+            'otp' => '000000',
+        ]);
+        $invalidVerify->assertStatus(422)
+            ->assertJsonPath('message', 'Invalid verification code. Please check your inbox and try again.');
+
+        // 3. Verify with correct OTP
+        $cachedOtp = Cache::get('reg_otp_dr.kalu@evercare.org')['code'];
+        $this->assertNotEmpty($cachedOtp);
+
+        $validVerify = $this->postJson('/api/v1/auth/verify-registration-otp', [
+            'admin_email' => 'dr.kalu@evercare.org',
+            'otp' => $cachedOtp,
+        ]);
+        $validVerify->assertStatus(200)
+            ->assertJsonPath('verified', true);
+
+        // 4. Register hospital with verified OTP
+        $regResponse = $this->postJson('/api/v1/auth/register-hospital', [
+            'hospital_name' => 'Evercare Medical City',
+            'hospital_type' => 'Specialist Hospital',
+            'hospital_email' => 'contact@evercare.org',
+            'hospital_phone' => '+2348039998877',
+            'state' => 'Lagos',
+            'lga' => 'Lekki',
+            'hospital_address' => '1 Admiralty Way, Lekki',
+            'admin_first_name' => 'Kalu',
+            'admin_last_name' => 'Ndukwe',
+            'admin_email' => 'dr.kalu@evercare.org',
+            'admin_phone' => '+2348039998878',
+            'admin_password' => 'secure-pass-1234',
+            'otp' => $cachedOtp,
+        ]);
+
+        $regResponse->assertStatus(201)
+            ->assertJsonPath('hospital.name', 'Evercare Medical City');
     }
 
     public function test_admin_crud_departments_and_staff_api(): void

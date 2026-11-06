@@ -21,6 +21,9 @@
 <a href="{{ route('admin.services') }}" class="flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
     <span>Services</span>
 </a>
+<a href="{{ route('admin.integrations') }}" class="flex items-center px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+    <span>EHR Integrations</span>
+</a>
 <a href="{{ route('admin.settings') }}" class="flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-brand-100 text-brand-700 transition">
     <span>Settings</span>
 </a>
@@ -126,6 +129,74 @@
                 Stale availability shows as "Unknown" on the public finder, with its last update time.
             </p>
         </div>
+
+        <!-- Custom Domain & White-Label -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 text-xs md:col-span-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                        Custom Domain & White-Label Portal
+                    </h3>
+                    <p class="text-slate-500 mt-0.5">
+                        Connect your hospital's custom domain (e.g. <code>his.riversideclinic.org</code>). Staff log in with your custom hospital branding.
+                    </p>
+                </div>
+                <div>
+                    @if ($hospital->isCustomDomainVerified())
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Active & Verified
+                        </span>
+                    @elseif ($hospital->custom_domain)
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Pending DNS Verification
+                        </span>
+                    @endif
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Hospital Custom Domain</label>
+                <input type="text" name="custom_domain" value="{{ old('custom_domain', $hospital->custom_domain) }}" placeholder="e.g. his.riversideclinic.org" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-sm focus:border-brand-700 outline-none">
+            </div>
+
+            <!-- DNS Instructions Box -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-slate-700">
+                <div class="font-bold text-slate-900">DNS Setup Instructions:</div>
+                <p>Add a <strong>CNAME</strong> record in your domain registrar (Cloudflare, GoDaddy, Namecheap):</p>
+                <div class="bg-white p-2.5 rounded-lg border border-slate-200 font-mono text-xs overflow-x-auto text-slate-800">
+                    <strong>Type:</strong> CNAME &nbsp;|&nbsp; <strong>Host:</strong> your subdomain (e.g. his) &nbsp;|&nbsp; <strong>Value/Target:</strong> domains.medislot.com
+                </div>
+                <p class="text-[11px] text-slate-500">Save your settings first, then click "Verify DNS Now" below.</p>
+            </div>
+        </div>
     </div>
 </form>
+
+@if ($hospital->custom_domain)
+    <div class="mt-4 p-4 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="text-xs">
+            <span class="text-slate-500">Configured domain:</span>
+            <span class="font-mono font-bold text-slate-900 ml-1">{{ $hospital->custom_domain }}</span>
+            @if ($hospital->custom_domain_verified_at)
+                <span class="text-slate-400 ml-2">Verified {{ $hospital->custom_domain_verified_at->diffForHumans() }}</span>
+            @endif
+        </div>
+        <div class="flex items-center gap-3">
+            <form method="POST" action="{{ route('admin.settings.domain.verify') }}">
+                @csrf
+                <button type="submit" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-semibold transition">
+                    Verify DNS Now
+                </button>
+            </form>
+            <form method="POST" action="{{ route('admin.settings.domain.remove') }}" onsubmit="return confirm('Disconnect this custom domain?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="px-3 py-2 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold transition">
+                    Disconnect Domain
+                </button>
+            </form>
+        </div>
+    </div>
+@endif
 @endsection

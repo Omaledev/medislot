@@ -84,7 +84,46 @@ class LabWebController extends Controller
         $hospital = $laboratoryRequest->hospital;
         $user = auth()->user();
 
+        return view('portals.lab.request-details', compact('hospital', 'user', 'laboratoryRequest'));
+    }
+
+    public function enterResultForm(LaboratoryRequest $laboratoryRequest): View
+    {
+        $laboratoryRequest->load(['patient', 'requester', 'result', 'visit']);
+        $hospital = $laboratoryRequest->hospital;
+        $user = auth()->user();
+
         return view('portals.lab.enter-result', compact('hospital', 'user', 'laboratoryRequest'));
+    }
+
+    public function showReport(LaboratoryRequest $laboratoryRequest): View
+    {
+        $laboratoryRequest->load(['patient', 'requester', 'result.enteredBy', 'visit']);
+        $hospital = $laboratoryRequest->hospital;
+        $user = auth()->user();
+
+        return view('portals.lab.result-report', compact('hospital', 'user', 'laboratoryRequest'));
+    }
+
+    public function amendReport(Request $request, LaboratoryRequest $laboratoryRequest): RedirectResponse
+    {
+        $validated = $request->validate([
+            'amendment_reason' => ['required', 'string'],
+            'corrected_value' => ['nullable', 'string'],
+        ]);
+
+        if ($laboratoryRequest->result) {
+            $notes = ($laboratoryRequest->result->lab_notes ? $laboratoryRequest->result->lab_notes."\n" : '')
+                .'[Amendment on '.now()->format('Y-m-d H:i').' by '.$request->user()->name.']: '.$validated['amendment_reason'];
+
+            $updates = ['lab_notes' => $notes];
+            if (! empty($validated['corrected_value'])) {
+                $updates['result_value'] = $validated['corrected_value'];
+            }
+            $laboratoryRequest->result->update($updates);
+        }
+
+        return back()->with('success', 'Amendment successfully recorded on laboratory report.');
     }
 
     public function saveResult(Request $request, LaboratoryRequest $laboratoryRequest): RedirectResponse
@@ -220,5 +259,21 @@ class LabWebController extends Controller
         $hospital = $user->hospital;
 
         return view('portals.lab.profile', compact('hospital', 'user'));
+    }
+
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+            'title' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('success', 'Profile updated successfully.');
     }
 }

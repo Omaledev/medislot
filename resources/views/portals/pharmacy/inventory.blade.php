@@ -97,6 +97,7 @@
                         <th class="px-6 py-3">Expiry Date</th>
                         <th class="px-6 py-3">Batch</th>
                         <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3 text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -129,10 +130,15 @@
                                     {{ ucfirst(str_replace('_', ' ', $med->status)) }}
                                 </span>
                             </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="{{ route('pharmacy.inventory.show', $med) }}" class="inline-flex items-center px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition">
+                                    Manage
+                                </a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="9" class="px-6 py-12 text-center text-slate-400">
                                 No medications in this inventory view.
                             </td>
                         </tr>

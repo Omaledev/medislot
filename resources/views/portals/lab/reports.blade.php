@@ -67,7 +67,7 @@
                             </td>
                             <td class="px-6 py-4 text-slate-500">{{ $rep->result?->finalized_at?->format('M d, Y · H:i') ?? $rep->updated_at->format('M d, Y') }}</td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('lab.requests.show', $rep) }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-sm transition">
+                                <a href="{{ route('lab.reports.show', $rep) }}" class="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-sm transition">
                                     View Report
                                 </a>
                             </td>

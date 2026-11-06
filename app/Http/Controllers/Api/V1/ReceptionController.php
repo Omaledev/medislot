@@ -123,6 +123,71 @@ class ReceptionController extends Controller
         ]);
     }
 
+    public function updatePatient(Request $request, Patient $patient): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['sometimes', 'required', 'string'],
+            'last_name' => ['sometimes', 'required', 'string'],
+            'date_of_birth' => ['nullable', 'date'],
+            'age' => ['nullable', 'integer'],
+            'gender' => ['sometimes', 'required', 'in:Female,Male,Other'],
+            'phone' => ['nullable', 'string'],
+            'address' => ['nullable', 'string'],
+            'emergency_contact' => ['nullable', 'string'],
+            'allergies' => ['nullable', 'string'],
+            'chronic_conditions' => ['nullable', 'string'],
+            'current_medications' => ['nullable', 'string'],
+        ]);
+
+        $patient->update($validated);
+
+        return response()->json([
+            'message' => 'Patient updated successfully',
+            'data' => new PatientResource($patient),
+        ]);
+    }
+
+    public function updateVisit(Request $request, Visit $visit): JsonResponse
+    {
+        $validated = $request->validate([
+            'department_id' => ['sometimes', 'exists:departments,id'],
+            'clinician_id' => ['nullable', 'exists:users,id'],
+            'visit_type' => ['sometimes', 'in:Walk-in,Appointment,Emergency'],
+            'reason_for_visit' => ['sometimes', 'string'],
+            'priority' => ['sometimes', 'in:Routine,Urgent,Emergency'],
+            'status' => ['sometimes', 'in:waiting,in_consultation,completed,cancelled'],
+        ]);
+
+        $visit->update($validated);
+
+        return response()->json([
+            'message' => 'Visit updated successfully',
+            'data' => new VisitResource($visit->load(['patient', 'department', 'clinician'])),
+        ]);
+    }
+
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string'],
+            'email' => ['sometimes', 'required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Reception settings updated successfully',
+            'data' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ],
+        ]);
+    }
+
     public function visits(Request $request): JsonResponse
     {
         $hospital = $request->user()->hospital;

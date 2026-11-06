@@ -16,6 +16,7 @@ class Hospital extends Model
     {
         return [
             'last_reported_at' => 'datetime',
+            'custom_domain_verified_at' => 'datetime',
             'warn_unupdated_hours' => 'integer',
             'mark_stale_hours' => 'integer',
         ];
@@ -31,9 +32,19 @@ class Hospital extends Model
         return $this->hasMany(User::class);
     }
 
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
     public function bedCategories(): HasMany
     {
         return $this->hasMany(BedCategory::class);
+    }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(HospitalApiKey::class);
     }
 
     public function services(): HasMany
@@ -89,5 +100,15 @@ class Hospital extends Model
     public function calculateOccupiedBeds(): int
     {
         return (int) $this->bedCategories()->sum('occupied_beds');
+    }
+
+    public function hasCustomDomain(): bool
+    {
+        return ! empty($this->custom_domain);
+    }
+
+    public function isCustomDomainVerified(): bool
+    {
+        return $this->custom_domain_status === 'active' && $this->custom_domain_verified_at !== null;
     }
 }

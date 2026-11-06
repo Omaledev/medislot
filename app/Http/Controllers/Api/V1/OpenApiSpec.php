@@ -18,6 +18,13 @@ use OpenApi\Attributes as OA;
     scheme: 'bearer',
     description: 'Personal Access Token obtained from /api/v1/auth/login or /api/v1/auth/department-login'
 )]
+#[OA\SecurityScheme(
+    securityScheme: 'apiKey',
+    type: 'apiKey',
+    name: 'X-Hospital-Key',
+    in: 'header',
+    description: 'Hospital Integration API Key generated in MediSlot Admin Dashboard (e.g. ms_live_...)'
+)]
 class OpenApiSpec
 {
     // ==========================================
@@ -48,6 +55,44 @@ class OpenApiSpec
     #[OA\Response(response: 422, description: 'Invalid department handle')]
     public function departmentLogin(): void {}
 
+    #[OA\Post(path: '/api/v1/auth/send-registration-otp', summary: 'Send 6-Digit Email Verification OTP for Hospital Registration', tags: ['Authentication'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['admin_email', 'hospital_name', 'admin_name'],
+        properties: [
+            new OA\Property(property: 'admin_email', type: 'string', format: 'email', example: 'dr.danladi@apexspecialist.org'),
+            new OA\Property(property: 'hospital_name', type: 'string', example: 'Apex Specialist Hospital'),
+            new OA\Property(property: 'admin_name', type: 'string', example: 'Dr. Patrick Danladi'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: '6-digit OTP code dispatched to administrator email')]
+    #[OA\Response(response: 422, description: 'Validation failed or email already registered')]
+    public function sendRegistrationOtp(): void {}
+
+    #[OA\Post(path: '/api/v1/auth/verify-registration-otp', summary: 'Verify 6-Digit Email Registration OTP', tags: ['Authentication'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['admin_email', 'otp'],
+        properties: [
+            new OA\Property(property: 'admin_email', type: 'string', format: 'email', example: 'dr.danladi@apexspecialist.org'),
+            new OA\Property(property: 'otp', type: 'string', example: '839204'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Email verified successfully')]
+    #[OA\Response(response: 422, description: 'Invalid or expired OTP code')]
+    public function verifyRegistrationOtp(): void {}
+
+    #[OA\Post(path: '/api/v1/auth/resend-registration-otp', summary: 'Resend 6-Digit Verification OTP', tags: ['Authentication'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['admin_email'],
+        properties: [
+            new OA\Property(property: 'admin_email', type: 'string', format: 'email', example: 'dr.danladi@apexspecialist.org'),
+            new OA\Property(property: 'hospital_name', type: 'string', example: 'Apex Specialist Hospital'),
+            new OA\Property(property: 'admin_name', type: 'string', example: 'Dr. Patrick Danladi'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'New 6-digit OTP dispatched')]
+    #[OA\Response(response: 429, description: 'Rate limit active: please wait before resending')]
+    public function resendRegistrationOtp(): void {}
+
     #[OA\Post(path: '/api/v1/auth/register-hospital', summary: 'Onboard New Hospital & Admin Account', tags: ['Authentication'])]
     #[OA\RequestBody(required: true, content: new OA\JsonContent(
         required: ['hospital_name', 'state', 'lga', 'address', 'admin_name', 'admin_email', 'password'],
@@ -60,6 +105,7 @@ class OpenApiSpec
             new OA\Property(property: 'admin_name', type: 'string', example: 'Dr. John Doe'),
             new OA\Property(property: 'admin_email', type: 'string', format: 'email', example: 'admin@apex.example'),
             new OA\Property(property: 'password', type: 'string', example: 'password'),
+            new OA\Property(property: 'otp', type: 'string', example: '839204', description: 'Optional 6-digit OTP code if verifying during final registration submit'),
         ]
     ))]
     #[OA\Response(response: 201, description: 'Hospital and Admin registered')]
@@ -127,6 +173,20 @@ class OpenApiSpec
     #[OA\Response(response: 200, description: 'Hospital profile, wards breakdown, and services')]
     public function finderHospitalDetail(): void {}
 
+    #[OA\Post(path: '/api/v1/public/contact', summary: 'Submit Public Contact Inquiry', tags: ['Public Finder'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['fullName', 'email', 'subject', 'message'],
+        properties: [
+            new OA\Property(property: 'fullName', type: 'string', example: 'Jane Doe'),
+            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'jane@example.com'),
+            new OA\Property(property: 'subject', type: 'string', example: 'Partnership Inquiry'),
+            new OA\Property(property: 'message', type: 'string', example: 'We would like to connect regarding hospital onboarding.'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Message received successfully')]
+    #[OA\Response(response: 422, description: 'Validation failed')]
+    public function publicContact(): void {}
+
     // ==========================================
     // RECEPTION DESK
     // ==========================================
@@ -161,6 +221,25 @@ class OpenApiSpec
     #[OA\Response(response: 200, description: 'Patient details and encounter timeline')]
     public function receptionShowPatient(): void {}
 
+    #[OA\Patch(path: '/api/v1/reception/patients/{patient}', summary: 'Update Patient Demographic Details', security: [['sanctum' => []]], tags: ['Reception Desk'])]
+    #[OA\Parameter(name: 'patient', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'first_name', type: 'string', example: 'Amina'),
+            new OA\Property(property: 'last_name', type: 'string', example: 'Yusuf'),
+            new OA\Property(property: 'date_of_birth', type: 'string', format: 'date', example: '1992-06-15'),
+            new OA\Property(property: 'gender', type: 'string', enum: ['Female', 'Male', 'Other'], example: 'Female'),
+            new OA\Property(property: 'phone', type: 'string', example: '0803 000 0124'),
+            new OA\Property(property: 'address', type: 'string', example: '14 Marina Road, Jos'),
+            new OA\Property(property: 'emergency_contact', type: 'string', example: 'Brother · 0802 000 0000'),
+            new OA\Property(property: 'allergies', type: 'string', example: 'Penicillin'),
+            new OA\Property(property: 'chronic_conditions', type: 'string', example: 'Asthma'),
+            new OA\Property(property: 'current_medications', type: 'string', example: 'Salbutamol inhaler'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Patient details updated')]
+    public function receptionUpdatePatient(): void {}
+
     #[OA\Get(path: '/api/v1/reception/visits', summary: 'List Today Visits Queue', security: [['sanctum' => []]], tags: ['Reception Desk'])]
     #[OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['waiting', 'in_consultation', 'completed', 'cancelled']))]
     #[OA\Response(response: 200, description: 'Visits queue')]
@@ -189,6 +268,32 @@ class OpenApiSpec
     ))]
     #[OA\Response(response: 200, description: 'Visit cancelled')]
     public function receptionCancelVisit(): void {}
+
+    #[OA\Patch(path: '/api/v1/reception/visits/{visit}', summary: 'Update Visit Queue Details or Status', security: [['sanctum' => []]], tags: ['Reception Desk'])]
+    #[OA\Parameter(name: 'visit', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'department_id', type: 'integer', example: 1),
+            new OA\Property(property: 'clinician_id', type: 'integer', nullable: true, example: 3),
+            new OA\Property(property: 'visit_type', type: 'string', enum: ['Walk-in', 'Appointment', 'Emergency'], example: 'Walk-in'),
+            new OA\Property(property: 'reason_for_visit', type: 'string', example: 'Follow-up consultation'),
+            new OA\Property(property: 'priority', type: 'string', enum: ['Routine', 'Urgent', 'Emergency'], example: 'Routine'),
+            new OA\Property(property: 'status', type: 'string', enum: ['waiting', 'in_consultation', 'completed', 'cancelled'], example: 'in_consultation'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Visit updated')]
+    public function receptionUpdateVisit(): void {}
+
+    #[OA\Put(path: '/api/v1/reception/settings', summary: 'Update Receptionist Desk Settings & Profile', security: [['sanctum' => []]], tags: ['Reception Desk'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'name', type: 'string', example: 'Joy Adeyemi'),
+            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'joy@riverside.example'),
+            new OA\Property(property: 'phone', type: 'string', example: '0803 000 0121'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Reception settings updated')]
+    public function receptionUpdateSettings(): void {}
 
     // ==========================================
     // CONSULTANT / DOCTOR
@@ -255,6 +360,18 @@ class OpenApiSpec
     #[OA\Response(response: 201, description: 'Prescription sent to pharmacy')]
     public function consultantStorePrescription(): void {}
 
+    #[OA\Put(path: '/api/v1/consultant/profile', summary: 'Update Consultant Profile', security: [['sanctum' => []]], tags: ['Consultant / Doctor'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'name', type: 'string', example: 'Dr. Ibrahim Bello'),
+            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'bello@riverside.example'),
+            new OA\Property(property: 'phone', type: 'string', example: '0803 000 0001'),
+            new OA\Property(property: 'title', type: 'string', example: 'Chief Consultant Physician'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Consultant profile updated')]
+    public function consultantUpdateProfile(): void {}
+
     // ==========================================
     // LABORATORY
     // ==========================================
@@ -271,6 +388,20 @@ class OpenApiSpec
     #[OA\Parameter(name: 'laboratoryRequest', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
     #[OA\Response(response: 200, description: 'Request details')]
     public function labShowRequest(): void {}
+
+    #[OA\Patch(path: '/api/v1/lab/requests/{laboratoryRequest}', summary: 'Update Laboratory Test Request Details', security: [['sanctum' => []]], tags: ['Laboratory'])]
+    #[OA\Parameter(name: 'laboratoryRequest', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'status', type: 'string', example: 'processing'),
+            new OA\Property(property: 'sample_type', type: 'string', example: 'Blood'),
+            new OA\Property(property: 'clinical_reason', type: 'string', example: 'Suspected typhoid'),
+            new OA\Property(property: 'instructions', type: 'string', example: 'STAT processing'),
+            new OA\Property(property: 'priority', type: 'string', enum: ['Routine', 'Urgent'], example: 'Urgent'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Request updated')]
+    public function labUpdateRequest(): void {}
 
     #[OA\Put(path: '/api/v1/lab/requests/{laboratoryRequest}/status', summary: 'Update Sample Stage in Pipeline', security: [['sanctum' => []]], tags: ['Laboratory'])]
     #[OA\Parameter(name: 'laboratoryRequest', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
@@ -300,9 +431,47 @@ class OpenApiSpec
     #[OA\Response(response: 200, description: 'Results recorded and released')]
     public function labEnterResults(): void {}
 
+    #[OA\Post(path: '/api/v1/lab/requests/{laboratoryRequest}/amend', summary: 'Record Amendment on Finalized Report', security: [['sanctum' => []]], tags: ['Laboratory'])]
+    #[OA\Parameter(name: 'laboratoryRequest', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['amendment_reason'],
+        properties: [
+            new OA\Property(property: 'amendment_reason', type: 'string', example: 'Re-tested with calibrated standard'),
+            new OA\Property(property: 'corrected_value', type: 'string', example: '14.2 g/dL'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Amendment recorded on report')]
+    public function labAmendReport(): void {}
+
+    #[OA\Post(path: '/api/v1/lab/requests/{laboratoryRequest}/attachments', summary: 'Upload Diagnostic Attachment / File', security: [['sanctum' => []]], tags: ['Laboratory'])]
+    #[OA\Parameter(name: 'laboratoryRequest', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\MediaType(
+        mediaType: 'multipart/form-data',
+        schema: new OA\Schema(
+            required: ['file'],
+            properties: [
+                new OA\Property(property: 'file', type: 'string', format: 'binary', description: 'Diagnostic scan or analyzer export'),
+            ]
+        )
+    ))]
+    #[OA\Response(response: 200, description: 'Attachment uploaded')]
+    public function labUploadAttachment(): void {}
+
     #[OA\Get(path: '/api/v1/lab/reports', summary: 'Finalized Diagnostic Reports', security: [['sanctum' => []]], tags: ['Laboratory'])]
     #[OA\Response(response: 200, description: 'Reports list')]
     public function labReports(): void {}
+
+    #[OA\Put(path: '/api/v1/lab/profile', summary: 'Update Laboratory Scientist Profile', security: [['sanctum' => []]], tags: ['Laboratory'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'name', type: 'string', example: 'Samuel Ibe'),
+            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'samuel@riverside.example'),
+            new OA\Property(property: 'phone', type: 'string', example: '0803 000 0002'),
+            new OA\Property(property: 'title', type: 'string', example: 'Senior Medical Laboratory Scientist'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Laboratory profile updated')]
+    public function labUpdateProfile(): void {}
 
     // ==========================================
     // PHARMACY
@@ -362,6 +531,48 @@ class OpenApiSpec
     ))]
     #[OA\Response(response: 201, description: 'Medication added to inventory')]
     public function pharmacyStoreMedication(): void {}
+
+    #[OA\Get(path: '/api/v1/pharmacy/inventory/{medication}', summary: 'Get Medication Details & SKU Status', security: [['sanctum' => []]], tags: ['Pharmacy'])]
+    #[OA\Parameter(name: 'medication', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\Response(response: 200, description: 'Medication inventory details')]
+    public function pharmacyShowMedication(): void {}
+
+    #[OA\Post(path: '/api/v1/pharmacy/inventory/{medication}/receive-stock', summary: 'Record Stock Received', security: [['sanctum' => []]], tags: ['Pharmacy'])]
+    #[OA\Parameter(name: 'medication', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['quantity_received'],
+        properties: [
+            new OA\Property(property: 'quantity_received', type: 'integer', example: 100),
+            new OA\Property(property: 'batch_number', type: 'string', example: 'BN-2026-99'),
+            new OA\Property(property: 'expiry_date', type: 'string', format: 'date', example: '2028-12-31'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Stock received and inventory updated')]
+    public function pharmacyReceiveStock(): void {}
+
+    #[OA\Post(path: '/api/v1/pharmacy/inventory/{medication}/adjust-stock', summary: 'Adjust Inventory Stock Count', security: [['sanctum' => []]], tags: ['Pharmacy'])]
+    #[OA\Parameter(name: 'medication', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['adjustment_amount', 'reason'],
+        properties: [
+            new OA\Property(property: 'adjustment_amount', type: 'integer', example: -5, description: 'Can be positive or negative'),
+            new OA\Property(property: 'reason', type: 'string', enum: ['Damaged', 'Expired', 'Stock count correction', 'Other'], example: 'Damaged'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Stock count adjusted')]
+    public function pharmacyAdjustStock(): void {}
+
+    #[OA\Put(path: '/api/v1/pharmacy/profile', summary: 'Update Pharmacist Profile', security: [['sanctum' => []]], tags: ['Pharmacy'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'name', type: 'string', example: 'Peace Umar'),
+            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'peace@riverside.example'),
+            new OA\Property(property: 'phone', type: 'string', example: '0803 000 0003'),
+            new OA\Property(property: 'title', type: 'string', example: 'Superintendent Pharmacist'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Pharmacist profile updated')]
+    public function pharmacyUpdateProfile(): void {}
 
     // ==========================================
     // HOSPITAL ADMIN
@@ -464,4 +675,83 @@ class OpenApiSpec
     ))]
     #[OA\Response(response: 201, description: 'Message delivered')]
     public function messagesStore(): void {}
+
+    // ==========================================
+    // HOSPITAL INTEGRATIONS (MEDISLOT CONNECT)
+    // ==========================================
+
+    #[OA\Get(path: '/api/v1/integrations/status', summary: 'Hospital Integration Status & Live Capacity', security: [['apiKey' => []]], tags: ['Hospital Integrations'])]
+    #[OA\Response(response: 200, description: 'Integration status and live ward capacities')]
+    public function integrationStatus(): void {}
+
+    #[OA\Post(path: '/api/v1/integrations/adt/admit', summary: 'Ingest Patient Admission (ADT^A01)', security: [['apiKey' => []]], tags: ['Hospital Integrations'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['ward_code'],
+        properties: [
+            new OA\Property(property: 'ward_code', type: 'string', example: 'ICU_01'),
+            new OA\Property(property: 'external_admission_id', type: 'string', example: 'EHR-ADM-9042'),
+            new OA\Property(property: 'external_patient_id', type: 'string', example: 'MRN-8472'),
+            new OA\Property(property: 'patient_name', type: 'string', example: 'Ada Lovelace'),
+            new OA\Property(property: 'patient_gender', type: 'string', enum: ['Male', 'Female', 'Other'], example: 'Female'),
+            new OA\Property(property: 'notes', type: 'string', example: 'Post-op cardiac monitoring'),
+        ]
+    ))]
+    #[OA\Response(response: 201, description: 'Admission recorded, bed marked occupied')]
+    #[OA\Response(response: 404, description: 'Ward code not recognized')]
+    public function integrationAdmit(): void {}
+
+    #[OA\Post(path: '/api/v1/integrations/adt/discharge', summary: 'Ingest Patient Discharge (ADT^A03)', security: [['apiKey' => []]], tags: ['Hospital Integrations'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'external_admission_id', type: 'string', example: 'EHR-ADM-9042'),
+            new OA\Property(property: 'external_patient_id', type: 'string', example: 'MRN-8472'),
+            new OA\Property(property: 'admission_number', type: 'string', example: 'ADM-2026-001'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Discharge recorded, bed released immediately')]
+    #[OA\Response(response: 404, description: 'Active admission not found')]
+    public function integrationDischarge(): void {}
+
+    #[OA\Post(path: '/api/v1/integrations/adt/transfer', summary: 'Ingest Patient Bed/Ward Transfer (ADT^A02)', security: [['apiKey' => []]], tags: ['Hospital Integrations'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['external_admission_id', 'to_ward_code'],
+        properties: [
+            new OA\Property(property: 'external_admission_id', type: 'string', example: 'EHR-ADM-9042'),
+            new OA\Property(property: 'to_ward_code', type: 'string', example: 'WARD_GENERAL_A'),
+            new OA\Property(property: 'notes', type: 'string', example: 'Stepped down from ICU'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Patient transferred, ward capacities adjusted')]
+    public function integrationTransfer(): void {}
+
+    #[OA\Put(path: '/api/v1/integrations/beds/sync', summary: 'Bulk Reconcile Bed Capacities (Snapshot Sync)', security: [['apiKey' => []]], tags: ['Hospital Integrations'])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ['wards'],
+        properties: [
+            new OA\Property(property: 'wards', type: 'array', items: new OA\Items(
+                properties: [
+                    new OA\Property(property: 'ward_code', type: 'string', example: 'ICU_01'),
+                    new OA\Property(property: 'total_beds', type: 'integer', example: 12),
+                    new OA\Property(property: 'occupied_beds', type: 'integer', example: 9),
+                    new OA\Property(property: 'out_of_service_beds', type: 'integer', example: 1),
+                ]
+            )),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Snapshot synchronized successfully')]
+    public function integrationSyncBeds(): void {}
+
+    #[OA\Post(path: '/api/v1/integrations/beds/allocate', summary: 'Smart Bed Recommendation Engine', security: [['apiKey' => []]], tags: ['Hospital Integrations'])]
+    #[OA\RequestBody(content: new OA\JsonContent(
+        properties: [
+            new OA\Property(property: 'acuity', type: 'string', enum: ['critical', 'intensive', 'maternity', 'pediatric', 'general', 'surgical'], example: 'critical'),
+            new OA\Property(property: 'gender', type: 'string', enum: ['male', 'female', 'any'], example: 'female'),
+            new OA\Property(property: 'isolation_required', type: 'boolean', example: false),
+            new OA\Property(property: 'patient_mrn', type: 'string', example: 'MRN-8472'),
+            new OA\Property(property: 'preferred_ward_code', type: 'string', example: 'ICU_01'),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: 'Optimal bed assigned with 15-minute provisional lock')]
+    #[OA\Response(response: 409, description: 'No beds currently available matching clinical criteria')]
+    public function integrationAllocateBed(): void {}
 }

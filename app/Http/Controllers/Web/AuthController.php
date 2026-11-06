@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\RegistrationOtpMail;
+use App\Models\ActivityLog;
 use App\Models\Department;
 use App\Models\Hospital;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -154,6 +158,86 @@ class AuthController extends Controller
         return view('auth.register-review', compact('step1', 'step2'));
     }
 
+    public function sendOtp(Request $request): RedirectResponse
+    {
+        $step1 = session('register.step1');
+        $step2 = session('register.step2');
+
+        if (! $step1 || ! $step2) {
+            return redirect()->route('register');
+        }
+
+        $this->generateAndSendOtp($step1, $step2);
+
+        return redirect()->route('register.verify-email');
+    }
+
+    public function showVerifyEmail(): View|RedirectResponse
+    {
+        $step1 = session('register.step1');
+        $step2 = session('register.step2');
+
+        if (! $step1 || ! $step2) {
+            return redirect()->route('register');
+        }
+
+        $otpData = session('register.otp');
+        if (! $otpData || now()->isAfter($otpData['expires_at'])) {
+            $this->generateAndSendOtp($step1, $step2);
+        }
+
+        return view('auth.verify-email', compact('step1', 'step2'));
+    }
+
+    public function resendOtp(Request $request): RedirectResponse
+    {
+        $step1 = session('register.step1');
+        $step2 = session('register.step2');
+
+        if (! $step1 || ! $step2) {
+            return redirect()->route('register');
+        }
+
+        $otpData = session('register.otp');
+        if ($otpData && ! empty($otpData['sent_at'])) {
+            $sentAt = Carbon::parse($otpData['sent_at']);
+            if ($sentAt->copy()->addSeconds(30)->isFuture()) {
+                $secondsRemaining = max(1, (int) now()->diffInSeconds($sentAt->copy()->addSeconds(30)));
+
+                return back()->with('info', "Please wait {$secondsRemaining} seconds before requesting a new code.");
+            }
+        }
+
+        $this->generateAndSendOtp($step1, $step2);
+
+        return back()->with('success', 'A new 6-digit verification code has been sent to '.$step2['email']);
+    }
+
+    private function generateAndSendOtp(array $step1, array $step2): string
+    {
+        $otp = (string) random_int(100000, 999999);
+
+        session([
+            'register.otp' => [
+                'code' => $otp,
+                'expires_at' => now()->addMinutes(15),
+                'sent_at' => now(),
+            ],
+        ]);
+
+        try {
+            Mail::to($step2['email'])->send(new RegistrationOtpMail(
+                otp: $otp,
+                adminName: "{$step2['first_name']} {$step2['last_name']}",
+                hospitalName: $step1['hospital_name'],
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $otp;
+    }
+
     public function completeRegistration(Request $request): RedirectResponse
     {
         $step1 = session('register.step1');
@@ -161,6 +245,30 @@ class AuthController extends Controller
 
         if (! $step1 || ! $step2) {
             return redirect()->route('register');
+        }
+
+        // Support both single "otp" input and 6-box "otp_digit[]" array
+        $otpInput = $request->input('otp');
+        if (empty($otpInput) && is_array($request->input('otp_digit'))) {
+            $otpInput = implode('', array_filter($request->input('otp_digit'), fn ($v) => $v !== null && $v !== ''));
+        }
+        $otpInput = preg_replace('/\D/', '', (string) $otpInput);
+
+        if (strlen($otpInput) !== 6) {
+            return back()->withErrors(['otp' => 'Please enter the complete 6-digit verification code.'])->withInput();
+        }
+
+        $otpData = session('register.otp');
+        if (! $otpData) {
+            return back()->withErrors(['otp' => 'No active verification code found. Please request a new code.'])->withInput();
+        }
+
+        if (now()->isAfter($otpData['expires_at'])) {
+            return back()->withErrors(['otp' => 'Verification code has expired. Please request a new code.'])->withInput();
+        }
+
+        if ($otpInput !== (string) $otpData['code']) {
+            return back()->withErrors(['otp' => 'Invalid verification code. Please check your inbox and try again.'])->withInput();
         }
 
         $slug = Str::slug($step1['hospital_name']);
@@ -217,7 +325,14 @@ class AuthController extends Controller
             ]);
         }
 
-        session()->forget(['register.step1', 'register.step2']);
+        ActivityLog::create([
+            'hospital_id' => $hospital->id,
+            'user_id' => $admin->id,
+            'action' => 'hospital_registered',
+            'description' => "Hospital '{$hospital->name}' successfully registered on MediSlot platform with primary admin {$admin->name}.",
+        ]);
+
+        session()->forget(['register.step1', 'register.step2', 'register.otp']);
 
         Auth::login($admin);
 
@@ -334,6 +449,7 @@ class AuthController extends Controller
     protected function redirectForRole(User $user): RedirectResponse
     {
         return match ($user->role) {
+            'superadmin' => redirect()->route('superadmin.dashboard'),
             'hospital_admin' => redirect()->route('admin.dashboard'),
             'reception' => redirect()->route('reception.dashboard'),
             'consultant' => redirect()->route('consultant.dashboard'),

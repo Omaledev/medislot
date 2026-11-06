@@ -27,9 +27,9 @@
 <div class="max-w-4xl space-y-6">
     <!-- Back Header -->
     <div class="flex items-center justify-between">
-        <a href="{{ route('lab.requests') }}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+        <a href="{{ route('lab.requests.show', $laboratoryRequest) }}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            Back to Requests
+            Back to Request Details
         </a>
 
         <!-- Fast Status Advancer -->

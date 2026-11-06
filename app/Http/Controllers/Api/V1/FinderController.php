@@ -74,4 +74,18 @@ class FinderController extends Controller
             'data' => new HospitalResource($hospital),
         ]);
     }
+
+    public function contact(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'fullName' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'subject' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string', 'max:3000'],
+        ]);
+
+        return response()->json([
+            'message' => 'Your message has been sent. We will be in touch soon.',
+        ], 200);
+    }
 }

@@ -4,10 +4,10 @@
 <div class="space-y-6" x-data="{ showPass: false }">
     <div>
         <h2 class="text-3xl font-bold tracking-tight text-slate-900">
-            Welcome Back
+            {{ isset($tenantHospital) ? $tenantHospital->name : 'Welcome Back' }}
         </h2>
         <p class="text-sm text-slate-500 mt-1">
-            Sign in to manage your hospital on MediSlot.
+            {{ isset($tenantHospital) ? 'Sign in to access your hospital staff portal.' : 'Sign in to manage your hospital on MediSlot.' }}
         </p>
     </div>
 

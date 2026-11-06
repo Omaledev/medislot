@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Middleware\AuthenticateHospitalApiKey;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\ResolveHospitalTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,8 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            ResolveHospitalTenant::class,
+        ]);
+
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'superadmin' => EnsureSuperAdmin::class,
+            'hospital.api_key' => AuthenticateHospitalApiKey::class,
+            'tenant' => ResolveHospitalTenant::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

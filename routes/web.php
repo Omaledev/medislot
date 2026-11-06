@@ -7,10 +7,15 @@ use App\Http\Controllers\Web\LabWebController;
 use App\Http\Controllers\Web\PharmacyWebController;
 use App\Http\Controllers\Web\PublicController;
 use App\Http\Controllers\Web\ReceptionWebController;
+use App\Http\Controllers\Web\SuperAdminController;
 use Illuminate\Support\Facades\Route;
 
 // Public & Finder
 Route::get('/', [PublicController::class, 'landing'])->name('home');
+Route::get('/about', [PublicController::class, 'about'])->name('about');
+Route::get('/app', [PublicController::class, 'app'])->name('app');
+Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
+Route::post('/contact', [PublicController::class, 'submitContact'])->name('contact.submit');
 Route::get('/finder', [PublicController::class, 'finder'])->name('finder');
 Route::get('/finder/results', [PublicController::class, 'finderResults'])->name('finder.results');
 Route::get('/finder/hospitals/{hospital:slug}', [PublicController::class, 'finderHospital'])->name('finder.hospital');
@@ -29,6 +34,9 @@ Route::post('/register/step-1', [AuthController::class, 'processRegisterStep1'])
 Route::get('/register/administrator', [AuthController::class, 'showRegisterStep2'])->name('register.administrator');
 Route::post('/register/step-2', [AuthController::class, 'processRegisterStep2'])->name('register.step2');
 Route::get('/register/review', [AuthController::class, 'showRegisterReview'])->name('register.review');
+Route::post('/register/send-otp', [AuthController::class, 'sendOtp'])->name('register.send-otp');
+Route::get('/register/verify-email', [AuthController::class, 'showVerifyEmail'])->name('register.verify-email');
+Route::post('/register/resend-otp', [AuthController::class, 'resendOtp'])->name('register.resend-otp');
 Route::post('/register/complete', [AuthController::class, 'completeRegistration'])->name('register.complete');
 Route::get('/register/ready', [AuthController::class, 'showAccountReady'])->name('register.ready');
 
@@ -66,6 +74,14 @@ Route::middleware('auth')->group(function () {
         Route::put('/services/{service}', [AdminWebController::class, 'updateService'])->name('services.update');
         Route::get('/settings', [AdminWebController::class, 'settings'])->name('settings');
         Route::post('/settings', [AdminWebController::class, 'updateSettings'])->name('settings.update');
+        Route::get('/profile', [AdminWebController::class, 'profile'])->name('profile');
+        Route::put('/profile', [AdminWebController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/settings/domain/verify', [AdminWebController::class, 'verifyCustomDomain'])->name('settings.domain.verify');
+        Route::delete('/settings/domain', [AdminWebController::class, 'removeCustomDomain'])->name('settings.domain.remove');
+        Route::get('/integrations', [AdminWebController::class, 'integrations'])->name('integrations');
+        Route::post('/integrations/keys', [AdminWebController::class, 'storeApiKey'])->name('integrations.keys.store');
+        Route::delete('/integrations/keys/{apiKey}', [AdminWebController::class, 'revokeApiKey'])->name('integrations.keys.revoke');
+        Route::put('/integrations/wards', [AdminWebController::class, 'updateWardMappings'])->name('integrations.wards.update');
         Route::get('/activity', [AdminWebController::class, 'activity'])->name('activity');
     });
 
@@ -76,11 +92,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/patients/create', [ReceptionWebController::class, 'createPatient'])->name('patients.create');
         Route::post('/patients', [ReceptionWebController::class, 'storePatient'])->name('patients.store');
         Route::get('/patients/{patient}', [ReceptionWebController::class, 'showPatient'])->name('patients.show');
+        Route::get('/patients/{patient}/edit', [ReceptionWebController::class, 'editPatient'])->name('patients.edit');
+        Route::put('/patients/{patient}', [ReceptionWebController::class, 'updatePatient'])->name('patients.update');
         Route::get('/queue', [ReceptionWebController::class, 'queue'])->name('queue');
         Route::post('/visits/{visit}/cancel', [ReceptionWebController::class, 'cancelVisit'])->name('visits.cancel');
         Route::get('/visits/create', [ReceptionWebController::class, 'createVisit'])->name('visits.create');
         Route::post('/visits', [ReceptionWebController::class, 'storeVisit'])->name('visits.store');
         Route::get('/beds', [ReceptionWebController::class, 'beds'])->name('beds');
+        Route::get('/settings', [ReceptionWebController::class, 'settings'])->name('settings');
+        Route::post('/settings', [ReceptionWebController::class, 'updateSettings'])->name('settings.update');
     });
 
     // Consultant (Doctor) Portal
@@ -97,6 +117,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/messages', [ConsultantWebController::class, 'messages'])->name('messages');
         Route::post('/messages', [ConsultantWebController::class, 'sendMessage'])->name('messages.send');
         Route::get('/profile', [ConsultantWebController::class, 'profile'])->name('profile');
+        Route::put('/profile', [ConsultantWebController::class, 'updateProfile'])->name('profile.update');
     });
 
     // Laboratory Portal
@@ -104,13 +125,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [LabWebController::class, 'dashboard'])->name('dashboard');
         Route::get('/requests', [LabWebController::class, 'requests'])->name('requests');
         Route::get('/requests/{laboratoryRequest}', [LabWebController::class, 'showRequest'])->name('requests.show');
+        Route::get('/requests/{laboratoryRequest}/enter-result', [LabWebController::class, 'enterResultForm'])->name('requests.enter-result');
         Route::post('/requests/{laboratoryRequest}/results', [LabWebController::class, 'saveResult'])->name('requests.results');
         Route::get('/samples', [LabWebController::class, 'samples'])->name('samples');
         Route::post('/requests/{laboratoryRequest}/advance', [LabWebController::class, 'advanceSampleStatus'])->name('requests.advance');
         Route::get('/reports', [LabWebController::class, 'reports'])->name('reports');
+        Route::get('/reports/{laboratoryRequest}', [LabWebController::class, 'showReport'])->name('reports.show');
+        Route::post('/requests/{laboratoryRequest}/amend', [LabWebController::class, 'amendReport'])->name('requests.amend');
         Route::get('/messages', [LabWebController::class, 'messages'])->name('messages');
         Route::post('/messages', [LabWebController::class, 'sendMessage'])->name('messages.send');
         Route::get('/profile', [LabWebController::class, 'profile'])->name('profile');
+        Route::put('/profile', [LabWebController::class, 'updateProfile'])->name('profile.update');
     });
 
     // Pharmacy Portal
@@ -123,12 +148,30 @@ Route::middleware('auth')->group(function () {
         Route::post('/prescriptions/{prescription}/dispense', [PharmacyWebController::class, 'dispensePrescription'])->name('prescriptions.dispense');
         Route::post('/prescriptions/{prescription}/clarify', [PharmacyWebController::class, 'requestClarification'])->name('prescriptions.clarify');
         Route::get('/dispensing', [PharmacyWebController::class, 'dispensingQueue'])->name('dispensing');
+        Route::get('/dispensing/{prescription}', [PharmacyWebController::class, 'showDispensingDetails'])->name('dispensing.show');
+        Route::post('/dispensing/{prescription}', [PharmacyWebController::class, 'processDispensing'])->name('dispensing.process');
         Route::get('/dispensing-history', [PharmacyWebController::class, 'dispensingHistory'])->name('dispensing-history');
         Route::get('/inventory', [PharmacyWebController::class, 'inventory'])->name('inventory');
         Route::get('/inventory/create', [PharmacyWebController::class, 'createMedication'])->name('inventory.create');
         Route::post('/inventory', [PharmacyWebController::class, 'storeMedication'])->name('inventory.store');
+        Route::get('/inventory/{medication}', [PharmacyWebController::class, 'showMedication'])->name('inventory.show');
+        Route::post('/inventory/{medication}/receive-stock', [PharmacyWebController::class, 'receiveStock'])->name('inventory.receive-stock');
+        Route::post('/inventory/{medication}/adjust-stock', [PharmacyWebController::class, 'adjustStock'])->name('inventory.adjust-stock');
         Route::get('/messages', [PharmacyWebController::class, 'messages'])->name('messages');
         Route::post('/messages', [PharmacyWebController::class, 'sendMessage'])->name('messages.send');
         Route::get('/profile', [PharmacyWebController::class, 'profile'])->name('profile');
+        Route::put('/profile', [PharmacyWebController::class, 'updateProfile'])->name('profile.update');
+    });
+
+    // Platform Super Admin Portal
+    Route::middleware('superadmin')->prefix('superadmin')->as('superadmin.')->group(function () {
+        Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/hospitals', [SuperAdminController::class, 'hospitals'])->name('hospitals.index');
+        Route::get('/hospitals/{hospital}', [SuperAdminController::class, 'showHospital'])->name('hospitals.show');
+        Route::post('/hospitals/{hospital}/status', [SuperAdminController::class, 'updateHospitalStatus'])->name('hospitals.status');
+        Route::get('/activity', [SuperAdminController::class, 'activity'])->name('activity');
+        Route::get('/integrations', [SuperAdminController::class, 'integrations'])->name('integrations');
+        Route::get('/operators', [SuperAdminController::class, 'operators'])->name('operators');
+        Route::post('/operators', [SuperAdminController::class, 'storeOperator'])->name('operators.store');
     });
 });

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConsultantController;
 use App\Http\Controllers\Api\V1\FinderController;
+use App\Http\Controllers\Api\V1\IntegrationController;
 use App\Http\Controllers\Api\V1\LaboratoryController;
 use App\Http\Controllers\Api\V1\MessageController;
 use App\Http\Controllers\Api\V1\PharmacyController;
@@ -11,9 +12,12 @@ use App\Http\Controllers\Api\V1\ReceptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    // Authentication
+    // Authentication & Registration OTP
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/department-login', [AuthController::class, 'departmentLogin']);
+    Route::post('/auth/send-registration-otp', [AuthController::class, 'sendRegistrationOtp']);
+    Route::post('/auth/verify-registration-otp', [AuthController::class, 'verifyRegistrationOtp']);
+    Route::post('/auth/resend-registration-otp', [AuthController::class, 'resendRegistrationOtp']);
     Route::post('/auth/register-hospital', [AuthController::class, 'registerHospital']);
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
@@ -21,6 +25,7 @@ Route::prefix('v1')->group(function () {
     // Public Finder API
     Route::get('/finder/hospitals', [FinderController::class, 'index']);
     Route::get('/finder/hospitals/{slugOrId}', [FinderController::class, 'show']);
+    Route::post('/public/contact', [FinderController::class, 'contact']);
 
     // Authenticated Endpoints
     Route::middleware('auth:sanctum')->group(function () {
@@ -53,9 +58,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/patients', [ReceptionController::class, 'patients']);
             Route::post('/patients', [ReceptionController::class, 'storePatient']);
             Route::get('/patients/{patient}', [ReceptionController::class, 'showPatient']);
+            Route::match(['put', 'patch'], '/patients/{patient}', [ReceptionController::class, 'updatePatient']);
             Route::get('/visits', [ReceptionController::class, 'visits']);
             Route::post('/visits', [ReceptionController::class, 'storeVisit']);
+            Route::match(['put', 'patch'], '/visits/{visit}', [ReceptionController::class, 'updateVisit']);
             Route::put('/visits/{visit}/cancel', [ReceptionController::class, 'cancelVisit']);
+            Route::put('/settings', [ReceptionController::class, 'updateSettings']);
         });
 
         // Consultant
@@ -65,6 +73,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/workspace/{visit}/notes', [ConsultantController::class, 'saveNotes']);
             Route::post('/workspace/{visit}/prescriptions', [ConsultantController::class, 'storePrescription']);
             Route::post('/workspace/{visit}/lab-requests', [ConsultantController::class, 'storeLabRequest']);
+            Route::put('/profile', [ConsultantController::class, 'updateProfile']);
         });
 
         // Laboratory
@@ -72,9 +81,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard', [LaboratoryController::class, 'dashboard']);
             Route::get('/requests', [LaboratoryController::class, 'requests']);
             Route::get('/requests/{laboratoryRequest}', [LaboratoryController::class, 'show']);
+            Route::match(['put', 'patch'], '/requests/{laboratoryRequest}', [LaboratoryController::class, 'updateRequest']);
             Route::put('/requests/{laboratoryRequest}/status', [LaboratoryController::class, 'updateSampleStatus']);
             Route::post('/requests/{laboratoryRequest}/results', [LaboratoryController::class, 'enterResult']);
+            Route::post('/requests/{laboratoryRequest}/amend', [LaboratoryController::class, 'amend']);
+            Route::post('/requests/{laboratoryRequest}/attachments', [LaboratoryController::class, 'uploadAttachment']);
             Route::get('/reports', [LaboratoryController::class, 'reports']);
+            Route::put('/profile', [LaboratoryController::class, 'updateProfile']);
         });
 
         // Pharmacy
@@ -88,10 +101,24 @@ Route::prefix('v1')->group(function () {
             Route::post('/prescriptions/{prescription}/clarify', [PharmacyController::class, 'requestClarification']);
             Route::get('/inventory', [PharmacyController::class, 'inventory']);
             Route::post('/inventory', [PharmacyController::class, 'storeMedication']);
+            Route::get('/inventory/{medication}', [PharmacyController::class, 'showMedication']);
+            Route::post('/inventory/{medication}/receive-stock', [PharmacyController::class, 'receiveStock']);
+            Route::post('/inventory/{medication}/adjust-stock', [PharmacyController::class, 'adjustStock']);
+            Route::put('/profile', [PharmacyController::class, 'updateProfile']);
         });
 
         // Messages
         Route::get('/messages', [MessageController::class, 'index']);
         Route::post('/messages', [MessageController::class, 'store']);
+    });
+
+    // External Hospital Integrations API (MediSlot Connect)
+    Route::prefix('integrations')->middleware('hospital.api_key')->group(function () {
+        Route::get('/status', [IntegrationController::class, 'status']);
+        Route::post('/adt/admit', [IntegrationController::class, 'admit']);
+        Route::post('/adt/discharge', [IntegrationController::class, 'discharge']);
+        Route::post('/adt/transfer', [IntegrationController::class, 'transfer']);
+        Route::put('/beds/sync', [IntegrationController::class, 'syncBeds']);
+        Route::post('/beds/allocate', [IntegrationController::class, 'allocateBed']);
     });
 });

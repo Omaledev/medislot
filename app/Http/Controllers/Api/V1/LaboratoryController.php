@@ -167,4 +167,82 @@ class LaboratoryController extends Controller
             'data' => LaboratoryRequestResource::collection($reports),
         ]);
     }
+
+    public function updateRequest(Request $request, LaboratoryRequest $laboratoryRequest): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['sometimes', 'string'],
+            'sample_type' => ['nullable', 'string'],
+            'clinical_reason' => ['nullable', 'string'],
+            'instructions' => ['nullable', 'string'],
+            'priority' => ['sometimes', 'in:Routine,Urgent'],
+        ]);
+
+        $laboratoryRequest->update($validated);
+
+        return response()->json([
+            'message' => 'Laboratory request updated',
+            'data' => new LaboratoryRequestResource($laboratoryRequest),
+        ]);
+    }
+
+    public function amend(Request $request, LaboratoryRequest $laboratoryRequest): JsonResponse
+    {
+        $validated = $request->validate([
+            'amendment_reason' => ['required', 'string'],
+            'corrected_value' => ['nullable', 'string'],
+        ]);
+
+        if ($laboratoryRequest->result) {
+            $notes = ($laboratoryRequest->result->lab_notes ? $laboratoryRequest->result->lab_notes."\n" : '')
+                .'[Amendment by '.$request->user()->name.']: '.$validated['amendment_reason'];
+
+            $updates = ['lab_notes' => $notes];
+            if (! empty($validated['corrected_value'])) {
+                $updates['result_value'] = $validated['corrected_value'];
+            }
+            $laboratoryRequest->result->update($updates);
+        }
+
+        return response()->json([
+            'message' => 'Amendment recorded',
+            'data' => new LaboratoryRequestResource($laboratoryRequest->load('result')),
+        ]);
+    }
+
+    public function uploadAttachment(Request $request, LaboratoryRequest $laboratoryRequest): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        return response()->json([
+            'message' => 'Attachment uploaded successfully',
+            'attachment_name' => $request->file('file')->getClientOriginalName(),
+        ]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string'],
+            'email' => ['sometimes', 'required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+            'title' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'title' => $user->title,
+            ],
+        ]);
+    }
 }

@@ -82,8 +82,8 @@
                             </td>
                             <td class="px-6 py-4 text-slate-500">{{ $rx->created_at->format('M d, H:i') }}</td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('pharmacy.prescriptions.show', $rx) }}" class="inline-flex items-center px-3.5 py-1.5 bg-brand-700 hover:bg-brand-800 text-white rounded-lg text-xs font-semibold shadow-sm transition">
-                                    Fulfill
+                                <a href="{{ route('pharmacy.dispensing.show', $rx) }}" class="inline-flex items-center px-3.5 py-1.5 bg-brand-700 hover:bg-brand-800 text-white rounded-lg text-xs font-semibold shadow-sm transition">
+                                    Dispense
                                 </a>
                             </td>
                         </tr>

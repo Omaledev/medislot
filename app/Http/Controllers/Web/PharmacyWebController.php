@@ -317,4 +317,110 @@ class PharmacyWebController extends Controller
 
         return view('portals.pharmacy.profile', compact('hospital', 'user'));
     }
+
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+            'title' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('success', 'Profile updated successfully.');
+    }
+
+    public function showMedication(Medication $medication): View
+    {
+        $user = auth()->user();
+        $hospital = $medication->hospital;
+
+        return view('portals.pharmacy.medication-details', compact('hospital', 'user', 'medication'));
+    }
+
+    public function receiveStock(Request $request, Medication $medication): RedirectResponse
+    {
+        $validated = $request->validate([
+            'quantity_received' => ['required', 'integer', 'min:1'],
+            'batch_number' => ['nullable', 'string'],
+            'expiry_date' => ['nullable', 'date'],
+        ]);
+
+        $medication->increment('quantity', $validated['quantity_received']);
+
+        $updates = [];
+        if (! empty($validated['batch_number'])) {
+            $updates['batch_number'] = $validated['batch_number'];
+        }
+        if (! empty($validated['expiry_date'])) {
+            $updates['expiry_date'] = $validated['expiry_date'];
+        }
+        if ($updates) {
+            $medication->update($updates);
+        }
+        $medication->updateStatus();
+
+        return back()->with('success', "Received {$validated['quantity_received']} units of {$medication->name}. Stock updated.");
+    }
+
+    public function adjustStock(Request $request, Medication $medication): RedirectResponse
+    {
+        $validated = $request->validate([
+            'adjustment_amount' => ['required', 'integer'],
+            'reason' => ['required', 'string'],
+        ]);
+
+        $newQty = max(0, $medication->quantity + $validated['adjustment_amount']);
+        $medication->update(['quantity' => $newQty]);
+        $medication->updateStatus();
+
+        return back()->with('success', "Stock adjusted by {$validated['adjustment_amount']} ({$validated['reason']}). Current quantity: {$newQty}.");
+    }
+
+    public function showDispensingDetails(Prescription $prescription): View
+    {
+        $prescription->load(['patient', 'prescriber', 'items.medication', 'visit']);
+        $hospital = $prescription->hospital;
+        $user = auth()->user();
+
+        return view('portals.pharmacy.dispensing-details', compact('hospital', 'user', 'prescription'));
+    }
+
+    public function processDispensing(Request $request, Prescription $prescription): RedirectResponse
+    {
+        $quantities = $request->input('quantities', []);
+        $allDispensed = true;
+
+        foreach ($prescription->items as $item) {
+            $dispenseQty = isset($quantities[$item->id]) ? (int) $quantities[$item->id] : $item->quantity_prescribed;
+            if ($item->medication_id) {
+                $med = Medication::find($item->medication_id);
+                if ($med) {
+                    $med->decrement('quantity', min($med->quantity, $dispenseQty));
+                    $med->updateStatus();
+                }
+            }
+
+            $item->update([
+                'quantity_dispensed' => ($item->quantity_dispensed ?? 0) + $dispenseQty,
+                'status' => ($item->quantity_dispensed + $dispenseQty >= $item->quantity_prescribed) ? 'dispensed' : 'partially_dispensed',
+            ]);
+
+            if ($item->quantity_dispensed < $item->quantity_prescribed) {
+                $allDispensed = false;
+            }
+        }
+
+        $prescription->update([
+            'status' => $allDispensed ? 'dispensed' : 'partially_dispensed',
+            'dispensed_by' => auth()->id(),
+            'dispensed_at' => now(),
+        ]);
+
+        return redirect()->route('pharmacy.dispensing-history')->with('success', "Dispensing completed for {$prescription->rx_number}.");
+    }
 }

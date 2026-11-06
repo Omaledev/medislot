@@ -7,11 +7,15 @@ use App\Models\ActivityLog;
 use App\Models\Admission;
 use App\Models\BedCategory;
 use App\Models\Department;
+use App\Models\Hospital;
+use App\Models\HospitalApiKey;
 use App\Models\HospitalService;
 use App\Models\User;
+use App\Services\CustomDomainService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -352,7 +356,7 @@ class AdminWebController extends Controller
         return view('portals.admin.settings', compact('hospital'));
     }
 
-    public function updateSettings(Request $request): RedirectResponse
+    public function updateSettings(Request $request, CustomDomainService $domainService): RedirectResponse
     {
         $hospital = $request->user()->hospital;
 
@@ -365,11 +369,114 @@ class AdminWebController extends Controller
             'emergency_status' => ['required', 'in:accepting,limited,not_accepting'],
             'warn_unupdated_hours' => ['required', 'integer'],
             'mark_stale_hours' => ['required', 'integer'],
+            'custom_domain' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (! empty($validated['custom_domain'])) {
+            $normalized = $domainService->normalizeDomain($validated['custom_domain']);
+            if (! $domainService->isValidDomain($normalized)) {
+                return back()->withInput()->withErrors(['custom_domain' => 'The provided custom domain is invalid or reserved.']);
+            }
+
+            // Check uniqueness across other hospitals
+            $existing = Hospital::where('custom_domain', $normalized)
+                ->where('id', '!=', $hospital->id)
+                ->exists();
+
+            if ($existing) {
+                return back()->withInput()->withErrors(['custom_domain' => 'This custom domain is already registered to another hospital.']);
+            }
+
+            if ($hospital->custom_domain !== $normalized) {
+                $validated['custom_domain'] = $normalized;
+                $validated['custom_domain_status'] = 'pending';
+                $validated['custom_domain_verified_at'] = null;
+            }
+        } else {
+            $validated['custom_domain'] = null;
+            $validated['custom_domain_status'] = 'pending';
+            $validated['custom_domain_verified_at'] = null;
+        }
 
         $hospital->update($validated);
 
         return back()->with('success', 'Hospital settings saved successfully');
+    }
+
+    public function verifyCustomDomain(Request $request, CustomDomainService $domainService): RedirectResponse
+    {
+        $hospital = $request->user()->hospital;
+
+        if (! $hospital->custom_domain) {
+            return back()->withErrors(['custom_domain' => 'Please enter and save a custom domain before verifying.']);
+        }
+
+        $result = $domainService->verify($hospital);
+
+        if ($result['success']) {
+            return back()->with('success', $result['message']);
+        }
+
+        return back()->with('error', $result['message']);
+    }
+
+    public function removeCustomDomain(Request $request): RedirectResponse
+    {
+        $hospital = $request->user()->hospital;
+
+        $hospital->update([
+            'custom_domain' => null,
+            'custom_domain_status' => 'pending',
+            'custom_domain_verified_at' => null,
+        ]);
+
+        return back()->with('success', 'Custom domain removed successfully.');
+    }
+
+    public function profile(Request $request): View
+    {
+        $user = $request->user();
+        $hospital = $user->hospital;
+
+        return view('portals.admin.profile', compact('user', 'hospital'));
+    }
+
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'title' => ['nullable', 'string', 'max:100'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'remove_avatar' => ['nullable', 'boolean'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if ($request->boolean('remove_avatar')) {
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $validated['avatar'] = null;
+        } elseif ($request->hasFile('avatar')) {
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $path;
+        }
+
+        if (empty($validated['password'])) {
+            unset($validated['password']);
+        } else {
+            $validated['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return back()->with('success', 'Your personal administrator profile has been updated successfully.');
     }
 
     public function activity(Request $request): View
@@ -378,5 +485,62 @@ class AdminWebController extends Controller
         $logs = ActivityLog::where('hospital_id', $hospital->id)->latest()->paginate(25);
 
         return view('portals.admin.activity', compact('hospital', 'logs'));
+    }
+
+    public function integrations(Request $request): View
+    {
+        $hospital = $request->user()->hospital;
+        $apiKeys = $hospital->apiKeys()->latest()->get();
+        $beds = $hospital->bedCategories()->orderBy('name')->get();
+
+        return view('portals.admin.integrations', compact('hospital', 'apiKeys', 'beds'));
+    }
+
+    public function storeApiKey(Request $request): RedirectResponse
+    {
+        $hospital = $request->user()->hospital;
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+        ]);
+
+        $result = HospitalApiKey::generate($hospital, $validated['name']);
+
+        return back()->with('plainTextApiKey', $result['plainTextToken'])
+            ->with('success', "API Key [{$result['key']->name}] generated successfully! Copy it now, it will not be displayed again.");
+    }
+
+    public function revokeApiKey(Request $request, HospitalApiKey $apiKey): RedirectResponse
+    {
+        $hospital = $request->user()->hospital;
+
+        if ($apiKey->hospital_id !== $hospital->id) {
+            abort(403);
+        }
+
+        $apiKey->delete();
+
+        return back()->with('success', "API key [{$apiKey->name}] revoked successfully.");
+    }
+
+    public function updateWardMappings(Request $request): RedirectResponse
+    {
+        $hospital = $request->user()->hospital;
+
+        $validated = $request->validate([
+            'mappings' => ['required', 'array'],
+            'mappings.*' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        foreach ($validated['mappings'] as $bedId => $externalCode) {
+            $bed = $hospital->bedCategories()->find($bedId);
+            if ($bed) {
+                $bed->update([
+                    'external_code' => ! empty($externalCode) ? trim($externalCode) : null,
+                ]);
+            }
+        }
+
+        return back()->with('success', 'EHR Ward Code mappings updated successfully.');
     }
 }

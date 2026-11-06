@@ -212,4 +212,28 @@ class ConsultantController extends Controller
             'data' => new LaboratoryRequestResource($labReq->load(['patient', 'requester'])),
         ], 201);
     }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string'],
+            'email' => ['sometimes', 'required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+            'title' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'title' => $user->title,
+            ],
+        ]);
+    }
 }

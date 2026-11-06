@@ -53,11 +53,114 @@
                     <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-700 rounded-full"></span>
                 </button>
 
-                <!-- User profile badge -->
-                <div class="flex items-center space-x-2 text-sm">
-                    <span class="font-medium text-slate-800">{{ auth()->user()->name }}</span>
-                    <span class="text-slate-400">·</span>
-                    <span class="text-slate-500 text-xs bg-slate-100 px-2 py-0.5 rounded font-medium">{{ auth()->user()->title ?? ucfirst(str_replace('_', ' ', auth()->user()->role)) }}</span>
+                <!-- User profile dropdown -->
+                <div class="relative" x-data="{ open: false }">
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        class="flex items-center space-x-3 p-1 rounded-xl hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-brand-700/20"
+                        :class="{ 'bg-slate-100': open }"
+                    >
+                        <!-- Profile picture / Avatar -->
+                        <div class="w-9 h-9 rounded-full bg-brand-700 text-white font-bold text-xs flex items-center justify-center shadow-sm ring-2 ring-brand-100 select-none shrink-0 overflow-hidden">
+                            <img
+                                src="{{ auth()->user()->avatar_url }}"
+                                alt="{{ auth()->user()->name }}"
+                                class="w-full h-full object-cover"
+                                onerror="this.onerror=null; this.parentElement.innerHTML='{{ auth()->user()->initials }}';"
+                            />
+                        </div>
+
+                        <!-- Name and role -->
+                        <div class="text-left hidden sm:block">
+                            <div class="font-semibold text-slate-800 text-sm leading-tight flex items-center gap-1.5">
+                                <span>{{ auth()->user()->name }}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">
+                                {{ auth()->user()->title ?? ucfirst(str_replace('_', ' ', auth()->user()->role)) }}
+                            </div>
+                        </div>
+
+                        <!-- Down chevron -->
+                        <svg class="w-4 h-4 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div
+                        x-show="open"
+                        @click.away="open = false"
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="transform opacity-0 scale-95"
+                        x-transition:enter-end="transform opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-75"
+                        x-transition:leave-start="transform opacity-100 scale-100"
+                        x-transition:leave-end="transform opacity-0 scale-95"
+                        x-cloak
+                        class="absolute right-0 mt-2 w-60 rounded-2xl bg-white shadow-xl border border-slate-200 py-1.5 z-50 divide-y divide-slate-100 text-xs"
+                    >
+                        <!-- Header with email and role badge -->
+                        <div class="px-4 py-3">
+                            <p class="font-bold text-slate-900 text-sm truncate">{{ auth()->user()->name }}</p>
+                            <p class="text-slate-500 truncate mt-0.5 font-mono text-[11px]">{{ auth()->user()->email }}</p>
+                            <span class="inline-flex items-center px-2 py-0.5 mt-2 rounded text-[10px] font-semibold bg-brand-50 text-brand-700 border border-brand-200">
+                                {{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }}
+                            </span>
+                        </div>
+
+                        <!-- Menu Options -->
+                        <div class="py-1">
+                            <a
+                                href="{{ auth()->user()->getProfileUrl() }}"
+                                class="flex items-center gap-2.5 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-700 transition"
+                            >
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span>My Profile</span>
+                            </a>
+
+                            @if (auth()->user()->role === 'hospital_admin')
+                                <a
+                                    href="{{ route('admin.settings') }}"
+                                    class="flex items-center gap-2.5 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-700 transition"
+                                >
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>Hospital Settings</span>
+                                </a>
+
+                                <a
+                                    href="{{ route('admin.integrations') }}"
+                                    class="flex items-center gap-2.5 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-700 transition"
+                                >
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    <span>EHR Integrations</span>
+                                </a>
+                            @endif
+                        </div>
+
+                        <!-- Sign Out -->
+                        <div class="py-1">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="w-full flex items-center gap-2.5 px-4 py-2 font-semibold text-rose-600 hover:bg-rose-50 transition"
+                                >
+                                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                    </svg>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>

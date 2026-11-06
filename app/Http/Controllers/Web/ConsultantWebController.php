@@ -327,4 +327,20 @@ class ConsultantWebController extends Controller
 
         return view('portals.consultant.profile', compact('hospital', 'user'));
     }
+
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+            'title' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('success', 'Profile updated successfully.');
+    }
 }

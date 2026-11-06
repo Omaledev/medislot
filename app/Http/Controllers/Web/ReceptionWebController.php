@@ -107,6 +107,54 @@ class ReceptionWebController extends Controller
         return view('portals.reception.patient-profile', compact('patient'));
     }
 
+    public function editPatient(Patient $patient): View
+    {
+        $hospital = auth()->user()->hospital;
+
+        return view('portals.reception.edit-patient', compact('hospital', 'patient'));
+    }
+
+    public function updatePatient(Request $request, Patient $patient): RedirectResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string'],
+            'last_name' => ['required', 'string'],
+            'date_of_birth' => ['nullable', 'date'],
+            'gender' => ['required', 'in:Female,Male,Other'],
+            'phone' => ['nullable', 'string'],
+            'address' => ['nullable', 'string'],
+            'emergency_contact' => ['nullable', 'string'],
+            'allergies' => ['nullable', 'string'],
+        ]);
+
+        $patient->update($validated);
+
+        return redirect()->route('reception.patients.show', $patient)->with('success', 'Patient details updated.');
+    }
+
+    public function settings(Request $request): View
+    {
+        $hospital = $request->user()->hospital;
+        $departments = $hospital->departments()->where('status', 'active')->get();
+
+        return view('portals.reception.settings', compact('hospital', 'departments'));
+    }
+
+    public function updateSettings(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string'],
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('success', 'Reception settings saved.');
+    }
+
     public function queue(Request $request): View
     {
         $hospital = $request->user()->hospital;

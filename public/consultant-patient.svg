@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">Doctor consulting a patient with MediSlot</title>
+  <desc id="description">A doctor uses a laptop to have a video consultation with a patient through MediSlot.</desc>
+  <defs>
+    <linearGradient id="background" x1="87" y1="27" x2="683" y2="502" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E1F7F2"/>
+      <stop offset="1" stop-color="#C9EDE7"/>
+    </linearGradient>
+    <linearGradient id="coat" x1="205" y1="292" x2="498" y2="499" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#DCE9F0"/>
+    </linearGradient>
+    <filter id="shadow" x="48" y="46" width="671" height="450" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="12"/>
+      <feGaussianBlur stdDeviation="13"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix values="0 0 0 0 0.102 0 0 0 0 0.282 0 0 0 0 0.333 0 0 0 0.13 0"/>
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+    <clipPath id="patientVideo">
+      <rect x="436" y="316" width="116" height="84" rx="9"/>
+    </clipPath>
+  </defs>
+  <rect width="760" height="520" rx="30" fill="url(#background)"/>
+  <circle cx="640" cy="112" r="77" fill="#B2E4DA"/>
+  <circle cx="104" cy="404" r="91" fill="#B5E4DB"/>
+  <path d="M75 371c27-71 66-106 119-106 49 0 88 35 116 106v67H75v-67Z" fill="#D5EBE6"/>
+  <path d="M87 438h586" stroke="#A8D4CD" stroke-width="3" stroke-linecap="round"/>
+  <g filter="url(#shadow)">
+    <rect x="117" y="88" width="524" height="333" rx="21" fill="#fff"/>
+    <rect x="117.75" y="88.75" width="522.5" height="331.5" rx="20.25" stroke="#D8E9E8" stroke-width="1.5"/>
+    <rect x="118" y="89" width="522" height="45" rx="20" fill="#F7FBFA"/>
+    <path d="M118 114v20h522v-20" fill="#F7FBFA"/>
+    <circle cx="142" cy="111" r="5" fill="#8FD1C3"/>
+    <circle cx="159" cy="111" r="5" fill="#C5E6DF"/>
+    <circle cx="176" cy="111" r="5" fill="#D6E8E4"/>
+    <rect x="204" y="103" width="92" height="15" rx="7.5" fill="#E7F2EF"/>
+    <path d="M240 160c0-31 25-56 56-56s56 25 56 56v48H240v-48Z" fill="#3C746D"/>
+    <path d="M257 156c0-22 17-39 39-39 21 0 39 17 39 39v13c0 25-17 45-39 45-22 0-39-20-39-45v-13Z" fill="#9B5E42"/>
+    <path d="M256 155c2-25 16-43 42-43 18 0 34 8 41 25-8-4-16-6-24-6-9 13-27 21-55 23l-4 17v-16Z" fill="#242F32"/>
+    <path d="M268 168c4-3 9-3 13 0m26 0c4-3 9-3 13 0" stroke="#4E3029" stroke-width="3" stroke-linecap="round"/>
+    <path d="M283 188c7 5 17 5 24 0" stroke="#693D31" stroke-width="3" stroke-linecap="round"/>
+    <path d="M264 215c10 9 21 13 32 13s22-4 32-13l18 11c32 17 53 51 53 87v108H203V313c0-36 21-70 53-87l8-11Z" fill="url(#coat)"/>
+    <path d="M264 215c11 12 21 17 32 17s21-5 32-17l17 11-27 35h-43l-27-35 16-11Z" fill="#fff"/>
+    <path d="m291 232 5 19 5-19" stroke="#D1E0E2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M296 251v80c0 8 12 8 12 0v-80" stroke="#279A8B" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="302" cy="342" r="12" fill="#F0B44D"/>
+    <circle cx="302" cy="342" r="6" fill="#D58B36"/>
+    <path d="M323 280h39m-39 13h31" stroke="#C9D9DD" stroke-width="4" stroke-linecap="round"/>
+    <rect x="441" y="151" width="171" height="107" rx="13" fill="#F0F7F6"/>
+    <rect x="452" y="163" width="149" height="82" rx="8" fill="#DAEEE9"/>
+    <circle cx="526" cy="194" r="17" fill="#C9835D"/>
+    <path d="M493 240c3-20 15-31 33-31 19 0 30 11 33 31h-66Z" fill="#526A8C"/>
+    <path d="M512 192c1-11 7-17 16-17 11 0 17 7 17 18-7-4-12-9-15-13-3 7-9 11-18 12Z" fill="#382B29"/>
+    <rect x="455" y="225" width="142" height="20" rx="7" fill="#174E50" fill-opacity=".72"/>
+    <circle cx="466" cy="235" r="3" fill="#9CE6D5"/>
+    <path d="M475 235h42" stroke="#fff" stroke-opacity=".85" stroke-width="3" stroke-linecap="round"/>
+    <rect x="441" y="274" width="171" height="17" rx="8.5" fill="#DDF0EC"/>
+    <rect x="441" y="274" width="97" height="17" rx="8.5" fill="#14877C"/>
+    <circle cx="458" cy="282.5" r="4" fill="#fff"/>
+    <path d="M469 282h56" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <rect x="436" y="316" width="116" height="84" rx="9" fill="#E8F2F1"/>
+    <g clip-path="url(#patientVideo)">
+      <rect x="436" y="316" width="116" height="84" fill="#DCEBE8"/>
+      <circle cx="494" cy="346" r="17" fill="#D69A73"/>
+      <path d="M464 402c2-21 13-33 30-33 18 0 28 12 30 33h-60Z" fill="#849EBA"/>
+      <path d="M478 343c1-12 7-18 17-18 11 0 17 7 17 18-6-3-12-8-15-13-3 7-9 11-19 13Z" fill="#443532"/>
+    </g>
+    <path d="M456 375h23" stroke="#fff" stroke-opacity=".9" stroke-width="3" stroke-linecap="round"/>
+    <rect x="562" y="316" width="50" height="84" rx="9" fill="#F2F8F7"/>
+    <circle cx="587" cy="337" r="9" fill="#C5E7E0"/>
+    <path d="M583 337h8m-4-4v8" stroke="#14877C" stroke-width="2" stroke-linecap="round"/>
+    <path d="M573 357h29m-29 9h20m-20 9h25m-25 9h15" stroke="#CADBD8" stroke-width="3" stroke-linecap="round"/>
+    <rect x="193" y="358" width="80" height="27" rx="8" fill="#E8F5F2"/>
+    <path d="M207 371h51" stroke="#75BDB0" stroke-width="4" stroke-linecap="round"/>
+    <path d="M187 421h383l44 37H143l44-37Z" fill="#C7D7DD"/>
+    <path d="m205 421-29 30h409l-29-30H205Z" fill="#F9FCFC"/>
+    <path d="M316 436h67l8 7h-83l8-7Z" fill="#D4E1E3"/>
+    <path d="M143 458h481" stroke="#A7BBC0" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <rect x="70" y="456" width="163" height="37" rx="18.5" fill="#fff"/>
+  <circle cx="91" cy="474.5" r="8" fill="#1B9A89"/>
+  <path d="m87.5 474.5 2.5 2.5 5-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="107" y="479" fill="#245A58" font-family="Arial, sans-serif" font-size="12" font-weight="600">MediSlot consultation</text>
+</svg>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hospital;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -12,6 +13,33 @@ class PublicController extends Controller
     public function landing(): View
     {
         return view('pages.landing');
+    }
+
+    public function about(): View
+    {
+        return view('pages.about');
+    }
+
+    public function app(): View
+    {
+        return view('pages.app');
+    }
+
+    public function contact(): View
+    {
+        return view('pages.contact');
+    }
+
+    public function submitContact(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'fullName' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'subject' => ['required', 'string', 'max:255'],
+            'message' => ['required', 'string', 'max:3000'],
+        ]);
+
+        return back()->with('success', 'Your message has been sent. We will be in touch soon.');
     }
 
     public function finder(Request $request): View
