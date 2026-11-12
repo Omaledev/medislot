@@ -20,9 +20,32 @@ class BedCategory extends Model
             'occupied_beds' => 'integer',
             'out_of_service_beds' => 'integer',
             'available_beds' => 'integer',
+            'is_emergency_intake' => 'boolean',
             'last_updated_at' => 'datetime',
             'last_synced_at' => 'datetime',
         ];
+    }
+
+    public function isRestricted(): bool
+    {
+        return ! empty($this->restriction_scope);
+    }
+
+    public function getRestrictionWarningAttribute(): ?string
+    {
+        if ($this->restriction_scope === 'female_obstetric_only') {
+            return 'Restricted unit reserved for labor, delivery, and postpartum mothers. Ineligible for general medical or trauma emergencies.';
+        }
+
+        if ($this->restriction_scope === 'pediatric_under_18') {
+            return 'Restricted unit for infants and children under 14 years. Ineligible for adult emergencies.';
+        }
+
+        if ($this->isRestricted()) {
+            return 'Restricted unit with specific clinical admission criteria. Not available for unscheduled general emergencies.';
+        }
+
+        return null;
     }
 
     public function hospital(): BelongsTo

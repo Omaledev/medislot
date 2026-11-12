@@ -30,14 +30,19 @@ class FinderController extends Controller
 
         if ($request->filled('care_type')) {
             $careType = $request->query('care_type');
-            if (in_array(strtolower($careType), ['accident', 'trauma', 'emergency'])) {
+            if (in_array(strtolower($careType), ['accident', 'trauma', 'emergency', 'general emergency', 'accident / trauma'])) {
                 $query->where(function ($q) {
                     $q->where('emergency_status', 'accepting')
                         ->orWhere('emergency_status', 'limited');
                 });
-            } elseif (strtolower($careType) === 'maternity') {
+            } elseif (str_contains(strtolower($careType), 'maternity')) {
                 $query->whereHas('services', function ($sq) {
                     $sq->where('name', 'like', '%maternity%');
+                });
+            } elseif (str_contains(strtolower($careType), 'child')) {
+                $query->whereHas('services', function ($sq) {
+                    $sq->where('name', 'like', '%pediatric%')
+                        ->orWhere('name', 'like', '%child%');
                 });
             }
         }
@@ -45,7 +50,16 @@ class FinderController extends Controller
         if ($request->filled('availability')) {
             $avail = $request->query('availability');
             if ($avail === 'available') {
-                $query->whereHas('bedCategories', fn ($q) => $q->where('available_beds', '>', 0));
+                $careType = $request->query('care_type');
+                if ($careType && in_array(strtolower($careType), ['accident', 'trauma', 'emergency', 'general emergency', 'accident / trauma'])) {
+                    $query->whereHas('bedCategories', fn ($q) => $q->where('is_emergency_intake', true)->where('available_beds', '>', 0));
+                } elseif ($careType && str_contains(strtolower($careType), 'maternity')) {
+                    $query->whereHas('bedCategories', fn ($q) => $q->where('care_category', 'maternity')->where('available_beds', '>', 0));
+                } elseif ($careType && str_contains(strtolower($careType), 'child')) {
+                    $query->whereHas('bedCategories', fn ($q) => $q->where('care_category', 'pediatric')->where('available_beds', '>', 0));
+                } else {
+                    $query->whereHas('bedCategories', fn ($q) => $q->where('available_beds', '>', 0));
+                }
             }
         }
 

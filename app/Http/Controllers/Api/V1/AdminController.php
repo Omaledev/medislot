@@ -240,10 +240,26 @@ class AdminController extends Controller
         $validated = $request->validate([
             'total_beds' => ['required', 'integer', 'min:0'],
             'out_of_service_beds' => ['required', 'integer', 'min:0'],
+            'care_category' => ['nullable', 'string', 'in:emergency,maternity,pediatric,icu,general,specialized'],
+            'is_emergency_intake' => ['nullable', 'boolean'],
+            'restriction_scope' => ['nullable', 'string', 'max:100'],
+            'restriction_label' => ['nullable', 'string', 'max:255'],
         ]);
 
         $bedCategory->total_beds = $validated['total_beds'];
         $bedCategory->out_of_service_beds = $validated['out_of_service_beds'];
+        if ($request->has('care_category')) {
+            $bedCategory->care_category = $validated['care_category'] ?? 'general';
+        }
+        if ($request->has('is_emergency_intake')) {
+            $bedCategory->is_emergency_intake = (bool) $validated['is_emergency_intake'];
+        }
+        if ($request->has('restriction_scope')) {
+            $bedCategory->restriction_scope = $validated['restriction_scope'];
+        }
+        if ($request->has('restriction_label')) {
+            $bedCategory->restriction_label = $validated['restriction_label'];
+        }
         $bedCategory->recalculateAvailability();
 
         ActivityLog::create([

@@ -48,14 +48,18 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @forelse($hospitals as $h)
                 @php
-                    $availBeds = $h->calculateAvailableBeds();
+                    $isEmergencySearch = empty($careType) || in_array(strtolower($careType), ['general emergency', 'accident / trauma', 'accident', 'trauma', 'emergency']);
+                    $emergencyBeds = $h->calculateEmergencyAvailableBeds();
+                    $relevantBeds = $h->calculateRelevantAvailableBeds($careType);
+                    $isDiverting = $h->isEmergencyDiverting();
                     $distance = $loop->first ? '2.4 km' : ($loop->iteration === 2 ? '4.1 km' : '6.8 km');
+                    $nearestAlt = ($isEmergencySearch && $isDiverting) ? $h->findNearestEmergencyAlternative() : null;
                 @endphp
-                <div class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-5 hover:border-slate-300 transition">
+                <div class="rounded-3xl border {{ $isEmergencySearch && $isDiverting ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200 bg-white' }} p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-5 hover:border-slate-300 transition">
                     <div class="space-y-3">
                         <div class="flex items-start justify-between gap-3">
                             <h2 class="text-xl font-bold text-slate-900">
-                                <a href="{{ route('finder.hospital', $h->slug) }}" class="hover:text-teal-700 transition">
+                                <a href="{{ route('finder.hospital', ['hospital' => $h->slug, 'care_type' => $careType]) }}" class="hover:text-teal-700 transition">
                                     {{ $h->name }}
                                 </a>
                             </h2>
@@ -79,24 +83,66 @@
                         </div>
 
                         <!-- Inset Status Card -->
-                        <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 space-y-2.5">
-                            <div class="flex items-center justify-between text-xs font-medium">
-                                @if($availBeds > 0)
-                                    <span class="flex items-center gap-2 text-amber-700 font-semibold">
-                                        <span class="size-2 rounded-full bg-amber-500"></span>
-                                        {{ $availBeds }} general beds available
-                                    </span>
-                                @else
-                                    <span class="flex items-center gap-2 text-rose-600 font-semibold">
-                                        <span class="size-2 rounded-full bg-rose-500"></span>
-                                        No general beds reported
-                                    </span>
+                        <div class="rounded-2xl border {{ $isEmergencySearch && $isDiverting ? 'border-rose-200 bg-rose-50/60' : 'border-slate-100 bg-slate-50/70' }} p-4 space-y-2.5">
+                            @if($isEmergencySearch)
+                                <div class="flex items-center justify-between text-xs font-medium">
+                                    @if($emergencyBeds > 0 && ! $isDiverting)
+                                        <span class="flex items-center gap-2 text-emerald-700 font-semibold">
+                                            <span class="size-2 rounded-full bg-emerald-500"></span>
+                                            {{ $emergencyBeds }} emergency / resus {{ Str::plural('bed', $emergencyBeds) }} available
+                                        </span>
+                                    @else
+                                        <span class="flex items-center gap-2 text-rose-700 font-bold">
+                                            <span class="size-2 rounded-full bg-rose-600 animate-pulse"></span>
+                                            0 Emergency Bays · Diversion In Effect
+                                        </span>
+                                    @endif
+                                    <span class="text-slate-400">Emergency Intake</span>
+                                </div>
+
+                                @if($isDiverting)
+                                    <div class="rounded-xl bg-white/80 p-2.5 border border-rose-200/80 text-[11px] text-rose-800 space-y-1">
+                                        <div class="font-semibold flex items-center gap-1.5">
+                                            <svg class="size-3.5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                            <span>Do not travel here for emergency care</span>
+                                        </div>
+                                        <p class="text-rose-700 text-[11px] leading-tight">
+                                            Specialized units (e.g. Maternity) are strictly restricted and cannot receive general emergency or trauma cases.
+                                        </p>
+                                    </div>
+
+                                    @if($nearestAlt)
+                                        <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-900 flex items-center justify-between gap-2">
+                                            <div>
+                                                <span class="font-bold text-emerald-800 block text-[11px] uppercase tracking-wide">Nearest Accepting Hospital:</span>
+                                                <span class="font-semibold text-slate-900">{{ $nearestAlt->name }}</span>
+                                                <span class="text-emerald-700 text-[11px] block">({{ $nearestAlt->calculateEmergencyAvailableBeds() }} emergency beds available)</span>
+                                            </div>
+                                            <a href="{{ route('finder.hospital', ['hospital' => $nearestAlt->slug, 'care_type' => $careType]) }}" class="rounded-lg bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold hover:bg-emerald-800 transition shrink-0">
+                                                Go here &rarr;
+                                            </a>
+                                        </div>
+                                    @endif
                                 @endif
-                                <span class="text-slate-400">General Ward</span>
-                            </div>
+                            @else
+                                <div class="flex items-center justify-between text-xs font-medium">
+                                    @if($relevantBeds > 0)
+                                        <span class="flex items-center gap-2 text-emerald-700 font-semibold">
+                                            <span class="size-2 rounded-full bg-emerald-500"></span>
+                                            {{ $relevantBeds }} relevant {{ Str::plural('bed', $relevantBeds) }} available
+                                        </span>
+                                    @else
+                                        <span class="flex items-center gap-2 text-rose-600 font-semibold">
+                                            <span class="size-2 rounded-full bg-rose-500"></span>
+                                            No relevant beds reported
+                                        </span>
+                                    @endif
+                                    <span class="text-slate-400">{{ $careType }}</span>
+                                </div>
+                            @endif
 
                             <div class="flex items-center justify-between text-xs font-medium">
-                                @if($h->emergency_status === 'accepting')
+                                @if($h->emergency_status === 'accepting' && ! $isDiverting)
                                     <span class="flex items-center gap-2 text-emerald-700 font-semibold">
                                         <span class="size-2 rounded-full bg-emerald-500"></span>
                                         Accepting emergency patients
@@ -129,7 +175,7 @@
                         <a href="https://maps.google.com/?q={{ urlencode($h->name . ' ' . $h->address) }}" target="_blank" class="flex-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 py-2.5 text-center text-sm font-semibold text-slate-700 shadow-xs transition">
                             Directions
                         </a>
-                        <a href="{{ route('finder.hospital', $h->slug) }}" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 flex items-center gap-1 transition">
+                        <a href="{{ route('finder.hospital', ['hospital' => $h->slug, 'care_type' => $careType]) }}" class="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 flex items-center gap-1 transition">
                             Details &rarr;
                         </a>
                     </div>

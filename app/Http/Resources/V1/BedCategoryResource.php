@@ -12,6 +12,12 @@ class BedCategoryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'care_category' => $this->care_category ?? 'general',
+            'is_emergency_intake' => (bool) ($this->is_emergency_intake ?? false),
+            'is_restricted' => $this->isRestricted(),
+            'restriction_scope' => $this->restriction_scope,
+            'restriction_label' => $this->restriction_label,
+            'restriction_warning' => $this->restriction_warning,
             'total_beds' => $this->total_beds,
             'occupied_beds' => $this->occupied_beds,
             'out_of_service_beds' => $this->out_of_service_beds,
