@@ -165,12 +165,14 @@ class OpenApiSpec
     #[OA\Parameter(name: 'q', in: 'query', required: false, description: 'Hospital name or keyword', schema: new OA\Schema(type: 'string'))]
     #[OA\Parameter(name: 'state', in: 'query', required: false, description: 'Filter by state', schema: new OA\Schema(type: 'string'))]
     #[OA\Parameter(name: 'care_type', in: 'query', required: false, description: 'Accident / Trauma, Maternity / Delivery, General Emergency, Child Emergency', schema: new OA\Schema(type: 'string'))]
-    #[OA\Response(response: 200, description: 'Hospitals list with live capacity statistics')]
+    #[OA\Parameter(name: 'availability', in: 'query', required: false, description: 'available (filters by care_type-specific bed capacity)', schema: new OA\Schema(type: 'string', enum: ['available']))]
+    #[OA\Response(response: 200, description: 'Hospitals list with live capacity statistics, emergency beds, and diversion flags')]
     public function finderHospitals(): void {}
 
     #[OA\Get(path: '/api/v1/finder/hospitals/{slugOrId}', summary: 'Get Hospital Public Details & Wards', tags: ['Public Finder'])]
     #[OA\Parameter(name: 'slugOrId', in: 'path', required: true, description: 'Hospital slug (e.g. riverside) or numeric ID', schema: new OA\Schema(type: 'string'))]
-    #[OA\Response(response: 200, description: 'Hospital profile, wards breakdown, and services')]
+    #[OA\Parameter(name: 'care_type', in: 'query', required: false, description: 'Optional care intent context to evaluate capacity', schema: new OA\Schema(type: 'string'))]
+    #[OA\Response(response: 200, description: 'Hospital profile, classified ward breakdown, emergency diversion flags, and nearest alternative if diverted')]
     public function finderHospitalDetail(): void {}
 
     #[OA\Post(path: '/api/v1/public/contact', summary: 'Submit Public Contact Inquiry', tags: ['Public Finder'])]

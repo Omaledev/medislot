@@ -89,12 +89,15 @@ class PublicController extends Controller
         ]);
     }
 
-    public function finderHospital(Hospital $hospital): View
+    public function finderHospital(Request $request, Hospital $hospital): View
     {
         $hospital->load(['bedCategories', 'services' => fn ($q) => $q->where('is_public_visible', true), 'staff']);
+        $careType = $request->query('care_type');
 
         return view('pages.finder.details', [
             'hospital' => $hospital,
+            'careType' => $careType,
+            'nearestAlternative' => $hospital->isEmergencyDiverting() ? $hospital->findNearestEmergencyAlternative() : null,
         ]);
     }
 }

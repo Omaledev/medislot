@@ -24,10 +24,27 @@ class BedCategorySeeder extends Seeder
             $deptMaternity = Department::where('hospital_id', $riverside->id)->where('slug', 'maternity')->first();
             $deptEmergency = Department::where('hospital_id', $riverside->id)->where('slug', 'emergency')->first();
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
+                ['hospital_id' => $riverside->id, 'name' => 'Emergency Bay'],
+                [
+                    'department_id' => $deptEmergency?->id,
+                    'care_category' => 'emergency',
+                    'is_emergency_intake' => true,
+                    'total_beds' => 8,
+                    'occupied_beds' => 8,
+                    'out_of_service_beds' => 0,
+                    'available_beds' => 0,
+                    'status' => 'full',
+                    'last_updated_at' => Carbon::now()->subMinutes(3),
+                ]
+            );
+
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $riverside->id, 'name' => 'General Ward'],
                 [
                     'department_id' => $deptGeneralMed?->id,
+                    'care_category' => 'general',
+                    'is_emergency_intake' => false,
                     'total_beds' => 30,
                     'occupied_beds' => 24,
                     'out_of_service_beds' => 2,
@@ -37,10 +54,14 @@ class BedCategorySeeder extends Seeder
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $riverside->id, 'name' => 'Maternity'],
                 [
                     'department_id' => $deptMaternity?->id,
+                    'care_category' => 'maternity',
+                    'is_emergency_intake' => false,
+                    'restriction_scope' => 'female_obstetric_only',
+                    'restriction_label' => 'Restricted: Labour & Delivery Only',
                     'total_beds' => 12,
                     'occupied_beds' => 8,
                     'out_of_service_beds' => 1,
@@ -50,23 +71,29 @@ class BedCategorySeeder extends Seeder
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $riverside->id, 'name' => 'ICU'],
                 [
                     'department_id' => $deptEmergency?->id,
+                    'care_category' => 'icu',
+                    'is_emergency_intake' => true,
                     'total_beds' => 6,
-                    'occupied_beds' => 5,
+                    'occupied_beds' => 6,
                     'out_of_service_beds' => 0,
-                    'available_beds' => 1,
-                    'status' => 'limited',
+                    'available_beds' => 0,
+                    'status' => 'full',
                     'last_updated_at' => Carbon::now()->subMinutes(3),
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $riverside->id, 'name' => 'Paediatric'],
                 [
                     'department_id' => $deptGeneralMed?->id,
+                    'care_category' => 'pediatric',
+                    'is_emergency_intake' => false,
+                    'restriction_scope' => 'pediatric_under_18',
+                    'restriction_label' => 'Restricted: Children Under 14 Only',
                     'total_beds' => 16,
                     'occupied_beds' => 9,
                     'out_of_service_beds' => 1,
@@ -79,9 +106,11 @@ class BedCategorySeeder extends Seeder
 
         // 2. St. Anne Wards
         if ($stAnne) {
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $stAnne->id, 'name' => 'General Ward'],
                 [
+                    'care_category' => 'general',
+                    'is_emergency_intake' => false,
                     'total_beds' => 20,
                     'occupied_beds' => 20,
                     'out_of_service_beds' => 0,
@@ -91,9 +120,11 @@ class BedCategorySeeder extends Seeder
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $stAnne->id, 'name' => 'Emergency Bay'],
                 [
+                    'care_category' => 'emergency',
+                    'is_emergency_intake' => true,
                     'total_beds' => 8,
                     'occupied_beds' => 6,
                     'out_of_service_beds' => 0,
@@ -106,9 +137,11 @@ class BedCategorySeeder extends Seeder
 
         // 3. Apex Specialist Wards
         if ($apex) {
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $apex->id, 'name' => 'Trauma Inpatient Unit'],
                 [
+                    'care_category' => 'emergency',
+                    'is_emergency_intake' => true,
                     'total_beds' => 15,
                     'occupied_beds' => 7,
                     'out_of_service_beds' => 1,
@@ -118,9 +151,13 @@ class BedCategorySeeder extends Seeder
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $apex->id, 'name' => 'Orthopaedic Surgery Ward'],
                 [
+                    'care_category' => 'specialized',
+                    'is_emergency_intake' => false,
+                    'restriction_scope' => 'inpatient_elective',
+                    'restriction_label' => 'Restricted: Orthopaedic Surgical Patients Only',
                     'total_beds' => 10,
                     'occupied_beds' => 7,
                     'out_of_service_beds' => 0,
@@ -133,9 +170,11 @@ class BedCategorySeeder extends Seeder
 
         // 4. Cedarcrest Wards
         if ($cedarcrest) {
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $cedarcrest->id, 'name' => 'Critical Care Unit'],
                 [
+                    'care_category' => 'icu',
+                    'is_emergency_intake' => true,
                     'total_beds' => 8,
                     'occupied_beds' => 4,
                     'out_of_service_beds' => 0,
@@ -145,9 +184,13 @@ class BedCategorySeeder extends Seeder
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $cedarcrest->id, 'name' => 'Executive Suites'],
                 [
+                    'care_category' => 'specialized',
+                    'is_emergency_intake' => false,
+                    'restriction_scope' => 'private_suite',
+                    'restriction_label' => 'Restricted: Private VIP Inpatient Only',
                     'total_beds' => 12,
                     'occupied_beds' => 6,
                     'out_of_service_beds' => 1,
@@ -160,9 +203,11 @@ class BedCategorySeeder extends Seeder
 
         // 5. JUTH Wards
         if ($juth) {
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $juth->id, 'name' => 'Accident & Emergency Red Zone'],
                 [
+                    'care_category' => 'emergency',
+                    'is_emergency_intake' => true,
                     'total_beds' => 25,
                     'occupied_beds' => 18,
                     'out_of_service_beds' => 2,
@@ -172,9 +217,13 @@ class BedCategorySeeder extends Seeder
                 ]
             );
 
-            BedCategory::firstOrCreate(
+            BedCategory::updateOrCreate(
                 ['hospital_id' => $juth->id, 'name' => 'Male Medical Ward'],
                 [
+                    'care_category' => 'general',
+                    'is_emergency_intake' => false,
+                    'restriction_scope' => 'male_only',
+                    'restriction_label' => 'Restricted: Adult Males Only',
                     'total_beds' => 35,
                     'occupied_beds' => 30,
                     'out_of_service_beds' => 0,

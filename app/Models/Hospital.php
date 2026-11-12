@@ -97,6 +97,49 @@ class Hospital extends Model
         return (int) $this->bedCategories()->sum('available_beds');
     }
 
+    public function calculateEmergencyAvailableBeds(): int
+    {
+        return (int) $this->bedCategories()
+            ->where('is_emergency_intake', true)
+            ->sum('available_beds');
+    }
+
+    public function calculateRelevantAvailableBeds(?string $careType = null): int
+    {
+        if (empty($careType) || in_array(strtolower($careType), ['general emergency', 'accident / trauma', 'accident', 'trauma', 'emergency'])) {
+            return $this->calculateEmergencyAvailableBeds();
+        }
+
+        if (str_contains(strtolower($careType), 'maternity')) {
+            return (int) $this->bedCategories()
+                ->where('care_category', 'maternity')
+                ->sum('available_beds');
+        }
+
+        if (str_contains(strtolower($careType), 'child')) {
+            return (int) $this->bedCategories()
+                ->where('care_category', 'pediatric')
+                ->sum('available_beds');
+        }
+
+        return $this->calculateAvailableBeds();
+    }
+
+    public function isEmergencyDiverting(): bool
+    {
+        return $this->emergency_status === 'not_accepting' || $this->calculateEmergencyAvailableBeds() === 0;
+    }
+
+    public function findNearestEmergencyAlternative(): ?Hospital
+    {
+        return static::where('id', '!=', $this->id)
+            ->where('status', 'active')
+            ->where('emergency_status', '!=', 'not_accepting')
+            ->whereHas('bedCategories', fn ($q) => $q->where('is_emergency_intake', true)->where('available_beds', '>', 0))
+            ->orderByRaw('CASE WHEN state = ? THEN 0 ELSE 1 END', [$this->state])
+            ->first();
+    }
+
     public function calculateOccupiedBeds(): int
     {
         return (int) $this->bedCategories()->sum('occupied_beds');
